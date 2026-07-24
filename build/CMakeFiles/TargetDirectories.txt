@@ -1,0 +1,3 @@
+/home/berkay/korsancim/build/CMakeFiles/korsancim_server.dir
+/home/berkay/korsancim/build/CMakeFiles/edit_cache.dir
+/home/berkay/korsancim/build/CMakeFiles/rebuild_cache.dir

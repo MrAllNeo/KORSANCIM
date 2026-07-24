@@ -1,0 +1,16 @@
+# Derleme ve Geçici Klasörler
+backend/build/
+*.o
+*.a
+*.so
+
+# Veritabanı Dosyaları (Local veritabanını uzak depoya atmıyoruz)
+database/*.db
+
+# Editör ve IDE Ayarları
+.vscode/
+.idea/
+*.swp
+
+# Log Dosyaları
+*.log

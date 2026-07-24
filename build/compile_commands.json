@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/home/berkay/korsancim/build",
+  "command": "/usr/bin/g++  -I/home/berkay/korsancim/backend/include -g -std=gnu++17 -o CMakeFiles/korsancim_server.dir/src/main.cpp.o -c /home/berkay/korsancim/backend/src/main.cpp",
+  "file": "/home/berkay/korsancim/backend/src/main.cpp",
+  "output": "CMakeFiles/korsancim_server.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/berkay/korsancim/build",
+  "command": "/usr/bin/g++  -I/home/berkay/korsancim/backend/include -g -std=gnu++17 -o CMakeFiles/korsancim_server.dir/src/db/database.cpp.o -c /home/berkay/korsancim/backend/src/db/database.cpp",
+  "file": "/home/berkay/korsancim/backend/src/db/database.cpp",
+  "output": "CMakeFiles/korsancim_server.dir/src/db/database.cpp.o"
+}
+]

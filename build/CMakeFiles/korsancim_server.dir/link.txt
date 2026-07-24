@@ -1,0 +1,1 @@
+/usr/bin/g++ -g -Wl,--dependency-file=CMakeFiles/korsancim_server.dir/link.d CMakeFiles/korsancim_server.dir/src/main.cpp.o CMakeFiles/korsancim_server.dir/src/db/database.cpp.o -o korsancim_server  -lsqlite3
