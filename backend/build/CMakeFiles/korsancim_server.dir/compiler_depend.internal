@@ -3,6 +3,8 @@
 
 CMakeFiles/korsancim_server.dir/src/db/database.cpp.o
  /home/berkay/korsancim/backend/src/db/database.cpp
+ /home/berkay/korsancim/backend/include/models/comment.hpp
+ /home/berkay/korsancim/backend/include/models/topic.hpp
  /home/berkay/korsancim/backend/include/db/database.hpp
  /home/berkay/korsancim/backend/include/models/category.hpp
  /home/berkay/korsancim/backend/include/models/user.hpp
@@ -215,6 +217,8 @@ CMakeFiles/korsancim_server.dir/src/db/database.cpp.o
 CMakeFiles/korsancim_server.dir/src/main.cpp.o
  /home/berkay/korsancim/backend/src/main.cpp
  /home/berkay/korsancim/backend/include/crow_all.h
+ /home/berkay/korsancim/backend/include/models/comment.hpp
+ /home/berkay/korsancim/backend/include/models/topic.hpp
  /home/berkay/korsancim/backend/include/db/database.hpp
  /home/berkay/korsancim/backend/include/models/category.hpp
  /home/berkay/korsancim/backend/include/models/user.hpp

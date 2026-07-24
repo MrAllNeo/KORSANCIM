@@ -1631,4 +1631,6 @@ CMakeFiles/korsancim_server.dir/src/main.cpp.o: \
  /home/berkay/korsancim/backend/include/db/database.hpp \
  /home/berkay/korsancim/backend/include/models/user.hpp \
  /usr/include/sqlite3.h \
- /home/berkay/korsancim/backend/include/models/category.hpp
+ /home/berkay/korsancim/backend/include/db/../models/comment.hpp \
+ /home/berkay/korsancim/backend/include/models/category.hpp \
+ /home/berkay/korsancim/backend/include/db/../models/topic.hpp

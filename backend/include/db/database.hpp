@@ -5,7 +5,9 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include "../models/comment.hpp"
 #include "models/category.hpp"
+#include "../models/topic.hpp"
 namespace Korsancim {
 
 class Database {
@@ -40,6 +42,13 @@ public:
     bool user_exists(const std::string& username);
     // Kullanıcı giriş kontrolü (Kullanıcı adı ve şifre eşleşiyor mu?)
     bool authenticate_user(const std::string& username, const std::string& password);
+    // Yeni konu oluşturma
+    bool create_topic(int category_id, int user_id, const std::string& title, const std::string& content);
+// Yorum İşlemleri (Comments)
+    bool create_comment(int topic_id, int user_id, const std::string& content);
+    std::vector<Comment> get_comments_by_topic(int topic_id);
+    // Konuları listeleme (category_id > 0 ise sadece o kategoriyi, 0 ise tüm konuları getirir)
+    std::vector<Topic> get_topics(int category_id = 0);
 };
 
 } // namespace Korsancim

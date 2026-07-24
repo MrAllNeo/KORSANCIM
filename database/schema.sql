@@ -41,7 +41,15 @@ CREATE TABLE IF NOT EXISTS posts (
     FOREIGN KEY(topic_id) REFERENCES topics(id) ON DELETE CASCADE,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-
+CREATE TABLE IF NOT EXISTS comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    topic_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (topic_id) REFERENCES topics(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
 -- Varsayılan Başlangıç Kategorileri
 INSERT OR IGNORE INTO categories (name, description, slug) VALUES 
 ('Özgür Yazılım & Linux', 'Linux dağıtımları, açık kaynak araçlar ve felsefesi', 'ozgur-yazilim-linux'),

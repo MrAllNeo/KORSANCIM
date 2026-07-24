@@ -1,111 +1,185 @@
-#include "crow_all.h"
-#include "db/database.hpp" // Yazdığımız veritabanı sınıfını dahil ettik
+#include "crow.h"
+#include "db/database.hpp"
+#include "utils/jwt_helper.hpp"
 #include <iostream>
 
 int main() {
-    // 1. Veritabanı Nesnemizi Oluşturalım
-    // Yol doğrudan ana klasördeki database/korsancim.db dosyasını hedeflesin:
-Korsancim::Database db("database/korsancim.db");
+    crow::SimpleApp app;
+    Korsancim::Database db("korsancim.db");
 
-    // 2. Veritabanına Bağlanalım
     if (!db.connect()) {
-        std::cerr << "💥 Veritabanı başlatılamadığı için sunucu durduruluyor!" << std::endl;
+        std::cerr << "❌ Veritabanına bağlanılamadı!" << std::endl;
         return 1;
     }
 
-    crow::SimpleApp app;
+    // Tabloları Hazırla
+    db.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password_hash TEXT, role TEXT DEFAULT 'user');");
+    db.execute("CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, slug TEXT UNIQUE);");
+    db.execute("CREATE TABLE IF NOT EXISTS topics (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER, user_id INTEGER, title TEXT, content TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);");
+    db.execute("CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, topic_id INTEGER, user_id INTEGER, content TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);");
 
-    // Test API Uç Noktası (Endpoint)
-    CROW_ROUTE(app, "/api/ping")([](){
-        crow::json::wvalue res;
-        res["status"] = "success";
-        res["message"] = "KORSANCIM C++ Backend Servisi ve Veritabanı Aktif!";
-        res["anonim_mod"] = true;
-        return res;
-    });
-// Kategorileri Listeleyen API Uç Noktası
-    CROW_ROUTE(app, "/api/categories")([&db](){
-        crow::json::wvalue res;
-        auto categories = db.get_categories();
-
-        std::vector<crow::json::wvalue> cat_list;
-        for (const auto& cat : categories) {
-            crow::json::wvalue c;
-            c["id"] = cat.id;
-            c["name"] = cat.name;
-            c["description"] = cat.description;
-            c["slug"] = cat.slug;
-            cat_list.push_back(c);
-        }
-
-        res["status"] = "success";
-        res["categories"] = std::move(cat_list);
-        return res;
-    });
-    // Kullanıcı Kayıt Uç Noktası (POST /api/auth/register)
-    CROW_ROUTE(app, "/api/auth/register").methods(crow::HTTPMethod::Post)([&db](const crow::request& req){
-        crow::json::wvalue res;
-        
-        // Gelen JSON verisini parse ediyoruz
+    // 1. KULLANICI KAYIT (REGISTER)
+    CROW_ROUTE(app, "/api/auth/register").methods(crow::HTTPMethod::POST)([&db](const crow::request& req) {
         auto body = crow::json::load(req.body);
         if (!body || !body.has("username") || !body.has("password")) {
-            res["status"] = "error";
-            res["message"] = "Eksik parametre! 'username' ve 'password' zorunludur.";
-            return crow::response(400, res);
+            return crow::response(400, "{\"error\": \"Geçersiz parametreler\"}");
         }
 
         std::string username = body["username"].s();
-        std::string password = body["password"].s(); // İleride burayı SHA256/Argon2 ile hash'leyeceğiz
+        std::string password = body["password"].s();
 
-        // Kullanıcı adı kontrolü
-        if (db.user_exists(username)) {
-            res["status"] = "error";
-            res["message"] = "Bu rumuz zaten başka bir anonim korsan tarafından alınmış!";
-            return crow::response(400, res);
-        }
-
-        // Kayıt işlemi
         if (db.register_user(username, password)) {
-            res["status"] = "success";
-            res["message"] = "Anonim kaydınız başarıyla oluşturuldu! Hoş geldiniz.";
-            return crow::response(201, res);
+            return crow::response(201, "{\"message\": \"Kullanıcı başarıyla oluşturuldu!\"}");
         } else {
-            res["status"] = "error";
-            res["message"] = "Sunucu hatası: Kayıt oluşturulamadı.";
-            return crow::response(500, res);
+            return crow::response(400, "{\"error\": \"Kullanıcı adı zaten kullanımda!\"}");
         }
     });
-    // Kullanıcı Giriş Uç Noktası (POST /api/auth/login)
-    CROW_ROUTE(app, "/api/auth/login").methods(crow::HTTPMethod::Post)([&db](const crow::request& req){
-        crow::json::wvalue res;
-        
+
+    // 2. KULLANICI GİRİŞ (LOGIN - JWT TOKEN DÖNER)
+    CROW_ROUTE(app, "/api/auth/login").methods(crow::HTTPMethod::POST)([&db](const crow::request& req) {
         auto body = crow::json::load(req.body);
         if (!body || !body.has("username") || !body.has("password")) {
-            res["status"] = "error";
-            res["message"] = "Eksik parametre! 'username' ve 'password' zorunludur.";
-            return crow::response(400, res);
+            return crow::response(400, "{\"error\": \"Eksik bilgi\"}");
         }
 
         std::string username = body["username"].s();
         std::string password = body["password"].s();
 
         if (db.authenticate_user(username, password)) {
-            res["status"] = "success";
-            res["message"] = "Giriş başarılı! Hoş geldin korsan.";
-            res["user"] = username;
+            // Şimdilik varsayılan user_id: 1 ve role: user iletiyoruz (İleride DB'den ID çekilecek)
+            std::string token = Korsancim::JwtHelper::generate_token(1, username, "user");
+
+            crow::json::wvalue res;
+            res["message"] = "Giriş başarılı!";
+            res["token"] = token;
             return crow::response(200, res);
         } else {
-            res["status"] = "error";
-            res["message"] = "Hatalı kullanıcı adı veya şifre!";
-            return crow::response(401, res);
+            return crow::response(401, "{\"error\": \"Kullanıcı adı veya şifre hatalı!\"}");
         }
     });
-    std::cout << "=========================================" << std::endl;
-    std::cout << " 🚀 KORSANCIM Sunucusu Başlatılıyor...  " << std::endl;
-    std::cout << " Port: 8080                              " << std::endl;
-    std::cout << "=========================================" << std::endl;
 
+    // 3. KATEGORİLERİ GETİR (HERKESE AÇIK)
+    CROW_ROUTE(app, "/api/categories").methods(crow::HTTPMethod::GET)([&db]() {
+        auto categories = db.get_categories();
+        crow::json::wvalue res = crow::json::wvalue::list();
+        for (size_t i = 0; i < categories.size(); ++i) {
+            res[i]["id"] = categories[i].id;
+            res[i]["name"] = categories[i].name;
+            res[i]["description"] = categories[i].description;
+            res[i]["slug"] = categories[i].slug;
+        }
+        return crow::response(200, res);
+    });
+
+    // 4. YENİ KONU AÇMA (JWT KORUMALI)
+    CROW_ROUTE(app, "/api/topics").methods(crow::HTTPMethod::POST)([&db](const crow::request& req) {
+        auto auth_header = req.get_header_value("Authorization");
+        if (auth_header.empty() || auth_header.substr(0, 7) != "Bearer ") {
+            return crow::response(401, "{\"error\": \"Yetkisiz erişim! Token gerekli.\"}");
+        }
+
+        std::string token = auth_header.substr(7);
+        int user_id = 0;
+        std::string username, role;
+
+        if (!Korsancim::JwtHelper::verify_token(token, user_id, username, role)) {
+            return crow::response(401, "{\"error\": \"Geçersiz veya süresi dolmuş token!\"}");
+        }
+
+        auto body = crow::json::load(req.body);
+        if (!body || !body.has("category_id") || !body.has("title") || !body.has("content")) {
+            return crow::response(400, "{\"error\": \"Eksik veri gönderildi\"}");
+        }
+
+        int category_id = body["category_id"].i();
+        std::string title = body["title"].s();
+        std::string content = body["content"].s();
+
+        if (db.create_topic(category_id, user_id, title, content)) {
+            crow::json::wvalue res;
+            res["message"] = "Konu başarıyla açıldı!";
+            res["author"] = username;
+            return crow::response(201, res);
+        }
+
+        return crow::response(500, "{\"error\": \"Konu açılırken hata oluştu\"}");
+    });
+
+    // 5. KONULARI LİSTELE (HERKESE AÇIK)
+    CROW_ROUTE(app, "/api/topics").methods(crow::HTTPMethod::GET)([&db](const crow::request& req) {
+        int category_id = 0;
+        if (req.url_params.get("category_id") != nullptr) {
+            category_id = std::stoi(req.url_params.get("category_id"));
+        }
+
+        auto topics = db.get_topics(category_id);
+        crow::json::wvalue res = crow::json::wvalue::list();
+        for (size_t i = 0; i < topics.size(); ++i) {
+            res[i]["id"] = topics[i].id;
+            res[i]["category_id"] = topics[i].category_id;
+            res[i]["user_id"] = topics[i].user_id;
+            res[i]["author"] = topics[i].author_name;
+            res[i]["title"] = topics[i].title;
+            res[i]["content"] = topics[i].content;
+            res[i]["created_at"] = topics[i].created_at;
+        }
+        return crow::response(200, res);
+    });
+
+    // 6. YENİ YORUM YAZMA (JWT KORUMALI)
+    CROW_ROUTE(app, "/api/comments").methods(crow::HTTPMethod::POST)([&db](const crow::request& req) {
+        auto auth_header = req.get_header_value("Authorization");
+        if (auth_header.empty() || auth_header.substr(0, 7) != "Bearer ") {
+            return crow::response(401, "{\"error\": \"Yetkisiz erişim! Token gerekli.\"}");
+        }
+
+        std::string token = auth_header.substr(7);
+        int user_id = 0;
+        std::string username, role;
+
+        if (!Korsancim::JwtHelper::verify_token(token, user_id, username, role)) {
+            return crow::response(401, "{\"error\": \"Geçersiz veya süresi dolmuş token!\"}");
+        }
+
+        auto body = crow::json::load(req.body);
+        if (!body || !body.has("topic_id") || !body.has("content")) {
+            return crow::response(400, "{\"error\": \"Eksik veri gönderildi\"}");
+        }
+
+        int topic_id = body["topic_id"].i();
+        std::string content = body["content"].s();
+
+        if (db.create_comment(topic_id, user_id, content)) {
+            crow::json::wvalue res;
+            res["message"] = "Yorum başarıyla eklendi!";
+            res["author"] = username;
+            return crow::response(201, res);
+        }
+
+        return crow::response(500, "{\"error\": \"Yorum eklenirken hata oluştu\"}");
+    });
+
+    // 7. YORUMLARI LİSTELE (HERKESE AÇIK)
+    CROW_ROUTE(app, "/api/comments").methods(crow::HTTPMethod::GET)([&db](const crow::request& req) {
+        if (req.url_params.get("topic_id") == nullptr) {
+            return crow::response(400, "{\"error\": \"topic_id parametresi gerekli\"}");
+        }
+
+        int topic_id = std::stoi(req.url_params.get("topic_id"));
+        auto comments = db.get_comments_by_topic(topic_id);
+
+        crow::json::wvalue res = crow::json::wvalue::list();
+        for (size_t i = 0; i < comments.size(); ++i) {
+            res[i]["id"] = comments[i].id;
+            res[i]["topic_id"] = comments[i].topic_id;
+            res[i]["user_id"] = comments[i].user_id;
+            res[i]["author"] = comments[i].author_name;
+            res[i]["content"] = comments[i].content;
+            res[i]["created_at"] = comments[i].created_at;
+        }
+        return crow::response(200, res);
+    });
+
+    std::cout << "🚀 KORSANCIM Backend Sunucusu 8080 Portunda Çalışıyor..." << std::endl;
     app.port(8080).multithreaded().run();
-
-    return 0;
 }

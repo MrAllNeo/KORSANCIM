@@ -168,4 +168,6 @@ CMakeFiles/korsancim_server.dir/src/db/database.cpp.o: \
  /usr/include/c++/14/bits/stl_vector.h \
  /usr/include/c++/14/bits/stl_bvector.h \
  /usr/include/c++/14/bits/vector.tcc \
- /home/berkay/korsancim/backend/include/models/category.hpp
+ /home/berkay/korsancim/backend/include/db/../models/comment.hpp \
+ /home/berkay/korsancim/backend/include/models/category.hpp \
+ /home/berkay/korsancim/backend/include/db/../models/topic.hpp
