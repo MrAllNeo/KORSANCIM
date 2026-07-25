@@ -16,7 +16,7 @@ namespace ForumApi.Controllers
             _context = context;
         }
 
-        // 1. Belirli bir konuya ait yorumları getirme (GET: /api/comments/topic/5)
+        // GET: api/comments/topic/5
         [HttpGet("topic/{topicId}")]
         public async Task<IActionResult> GetCommentsByTopic(int topicId)
         {
@@ -28,26 +28,57 @@ namespace ForumApi.Controllers
             return Ok(comments);
         }
 
-        // 2. Yeni Yorum Yapma (POST: /api/comments)
+        // POST: api/comments
         [HttpPost]
-public async Task<IActionResult> CreateComment([FromBody] Comment comment)
-{
-    if (string.IsNullOrWhiteSpace(comment.Content))
-    {
-        return BadRequest(new { error = "Yorum içeriği boş olamaz." });
-    }
+        public async Task<IActionResult> CreateComment([FromBody] Comment comment)
+        {
+            if (string.IsNullOrWhiteSpace(comment.Content))
+            {
+                return BadRequest(new { error = "Yorum içeriği boş olamaz." });
+            }
 
-    if (string.IsNullOrWhiteSpace(comment.AuthorUsername))
-    {
-        comment.AuthorUsername = "Anonim_Dev";
-    }
+            comment.CreatedAt = DateTime.UtcNow;
+            _context.Comments.Add(comment);
+            await _context.SaveChangesAsync();
 
-    comment.CreatedAt = DateTime.UtcNow;
+            return Ok(comment);
+        }
 
-    _context.Comments.Add(comment);
-    await _context.SaveChangesAsync();
+        // POST: api/comments/5/like
+        // POST: api/comments/5/like
+        [HttpPost("{id}/like")]
+        public async Task<IActionResult> LikeComment(int id, [FromBody] LikeRequestDto dto)
+        {
+            var comment = await _context.Comments.FindAsync(id);
+            if (comment == null) return NotFound(new { error = "Yorum bulunamadı." });
 
-    return Ok(new { success = true, message = "Yanıt başarıyla eklendi.", comment });
-}
+            var username = string.IsNullOrWhiteSpace(dto.Username) ? "Anonim" : dto.Username;
+
+            var existingLike = await _context.CommentLikes
+                .FirstOrDefaultAsync(l => l.CommentId == id && l.Username.ToLower() == username.ToLower());
+
+            bool isLiked;
+
+            if (existingLike != null)
+            {
+                _context.CommentLikes.Remove(existingLike);
+                comment.LikeCount = Math.Max(0, comment.LikeCount - 1);
+                isLiked = false;
+            }
+            else
+            {
+                _context.CommentLikes.Add(new CommentLike { CommentId = id, Username = username });
+                comment.LikeCount += 1;
+                isLiked = true;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { likes = comment.LikeCount, isLiked });
+        }
+
+        public class LikeRequestDto
+        {
+            public string Username { get; set; } = string.Empty;
+        }
     }
 }

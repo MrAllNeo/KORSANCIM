@@ -107,6 +107,7 @@
         }
 
         // Giriş Yap İşlemi
+        // Giriş Yap İşlemi
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const usernameOrEmail = document.getElementById('login-user').value;
@@ -121,9 +122,16 @@
 
                 const data = await res.json();
                 if (res.ok) {
-                    localStorage.setItem('currentUser', JSON.stringify(data));
+                    // Kullanıcı bilgilerini LocalStorage'a yazıyoruz
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        userId: data.userId,
+                        username: data.username,
+                        email: data.email,
+                        avatarUrl: null // Şimdilik varsayılan profil resmi kullanılacak
+                    }));
+
                     showAlert('Giriş başarılı! Ana sayfaya yönlendiriliyorsunuz...', true);
-                    setTimeout(() => window.location.href = 'index.html', 1000);
+                    setTimeout(() => window.location.href = 'index.html', 800);
                 } else {
                     showAlert(data.error || 'Giriş yapılamadı.');
                 }

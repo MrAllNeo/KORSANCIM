@@ -19,43 +19,52 @@ namespace ForumApi.Controllers
             _env = env;
         }
 
-        // 1. Tüm Konuları veya Kategoriye Göre Listeleme (GET: /api/topics?categoryId=1)
+        public class CreateTopicDto
+        {
+            public string Title { get; set; } = string.Empty;
+            public int CategoryId { get; set; }
+            public string Content { get; set; } = string.Empty;
+            public bool IsLegalTermsAccepted { get; set; }
+            public string AuthorUsername { get; set; } = "Anonim";
+            public List<IFormFile>? Files { get; set; }
+        }
+
+        // GET: api/topics
         [HttpGet]
-        public async Task<IActionResult> GetTopics([FromQuery] int? categoryId = null)
+        public async Task<IActionResult> GetTopics([FromQuery] int categoryId = 0)
         {
             var query = _context.Topics.AsQueryable();
 
-            // Eğer bir kategori filtrelemesi geldiyse SQL tarafında süzüyoruz
-            if (categoryId.HasValue && categoryId.Value > 0)
+            if (categoryId > 0)
             {
-                query = query.Where(t => t.CategoryId == categoryId.Value);
+                query = query.Where(t => t.CategoryId == categoryId);
             }
 
-            var rawTopics = await query
-                .OrderByDescending(t => t.CreatedAt)
-                .ToListAsync();
+            var topics = await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
 
-            var topics = rawTopics.Select(t => new
+            var result = topics.Select(t => new
             {
                 t.Id,
                 t.Title,
                 t.CategoryId,
                 t.Content,
+                t.IsLegalTermsAccepted,
                 t.AuthorUsername,
+                t.LikeCount,
                 t.CreatedAt,
-                FileUrls = !string.IsNullOrEmpty(t.FileUrlsJson) 
-                    ? JsonSerializer.Deserialize<List<string>>(t.FileUrlsJson, (JsonSerializerOptions?)null) 
-                    : new List<string>()
+                FileUrls = string.IsNullOrEmpty(t.FileUrlsJson)
+                    ? new List<string>()
+                    : JsonSerializer.Deserialize<List<string>>(t.FileUrlsJson)
             });
 
-            return Ok(topics);
+            return Ok(result);
         }
 
-        // 2. Tek Bir Konuyu Detayıyla Getirme
+        // GET: api/topics/5
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetTopicById(int id)
+        public async Task<IActionResult> GetTopic(int id)
         {
-            var topic = await _context.Topics.FirstOrDefaultAsync(t => t.Id == id);
+            var topic = await _context.Topics.FindAsync(id);
             if (topic == null) return NotFound(new { error = "Konu bulunamadı." });
 
             var result = new
@@ -64,70 +73,106 @@ namespace ForumApi.Controllers
                 topic.Title,
                 topic.CategoryId,
                 topic.Content,
+                topic.IsLegalTermsAccepted,
                 topic.AuthorUsername,
+                topic.LikeCount,
                 topic.CreatedAt,
-                FileUrls = !string.IsNullOrEmpty(topic.FileUrlsJson) 
-                    ? JsonSerializer.Deserialize<List<string>>(topic.FileUrlsJson, (JsonSerializerOptions?)null) 
-                    : new List<string>()
+                FileUrls = string.IsNullOrEmpty(topic.FileUrlsJson)
+                    ? new List<string>()
+                    : JsonSerializer.Deserialize<List<string>>(topic.FileUrlsJson)
             };
 
             return Ok(result);
         }
 
-        // 3. Yeni Konu Açma & Dosya/Klasör Yükleme
+        // POST: api/topics
         [HttpPost]
-public async Task<IActionResult> CreateTopic(
-    [FromForm] string title,
-    [FromForm] int categoryId,
-    [FromForm] string content,
-    [FromForm] bool termsAccepted,
-    [FromForm] string? authorUsername,
-    [FromForm] List<IFormFile>? files)
-{
-    if (!termsAccepted)
-    {
-        return BadRequest(new { error = "Topluluk kurallarını ve yasal sorumluluğu kabul etmelisiniz." });
-    }
-
-    var savedFileUrls = new List<string>();
-
-    if (files != null && files.Count > 0)
-    {
-        var uploadsFolder = Path.Combine(_env.ContentRootPath, "uploads");
-        if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-
-        foreach (var file in files)
+        public async Task<IActionResult> CreateTopic([FromForm] CreateTopicDto dto)
         {
-            if (file.Length > 0)
+            if (!dto.IsLegalTermsAccepted)
             {
-                var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                savedFileUrls.Add($"/uploads/{uniqueFileName}");
+                return BadRequest(new { error = "Yasal şartları kabul etmelisiniz." });
             }
+
+            var fileUrls = new List<string>();
+
+            if (dto.Files != null && dto.Files.Count > 0)
+            {
+                var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads");
+                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                foreach (var file in dto.Files)
+                {
+                    if (file.Length > 0)
+                    {
+                        var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+                        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+
+                        fileUrls.Add("/uploads/" + uniqueFileName);
+                    }
+                }
+            }
+
+            var topic = new Topic
+            {
+                Title = dto.Title,
+                CategoryId = dto.CategoryId,
+                Content = dto.Content,
+                IsLegalTermsAccepted = dto.IsLegalTermsAccepted,
+                AuthorUsername = string.IsNullOrWhiteSpace(dto.AuthorUsername) ? "Anonim" : dto.AuthorUsername,
+                FileUrlsJson = fileUrls.Count > 0 ? JsonSerializer.Serialize(fileUrls) : null,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Topics.Add(topic);
+            await _context.SaveChangesAsync();
+
+            return Ok(topic);
         }
-    }
 
-    var topic = new Topic
-    {
-        Title = title,
-        CategoryId = categoryId,
-        Content = content,
-        IsLegalTermsAccepted = termsAccepted,
-        AuthorUsername = !string.IsNullOrWhiteSpace(authorUsername) ? authorUsername : "Anonim_Dev",
-        FileUrlsJson = savedFileUrls.Count > 0 ? JsonSerializer.Serialize(savedFileUrls) : null,
-        CreatedAt = DateTime.UtcNow
-    };
+        // POST: api/topics/5/like
+        // POST: api/topics/5/like
+        [HttpPost("{id}/like")]
+        public async Task<IActionResult> LikeTopic(int id, [FromBody] LikeRequestDto dto)
+        {
+            var topic = await _context.Topics.FindAsync(id);
+            if (topic == null) return NotFound(new { error = "Konu bulunamadı." });
 
-    _context.Topics.Add(topic);
-    await _context.SaveChangesAsync();
+            var username = string.IsNullOrWhiteSpace(dto.Username) ? "Anonim" : dto.Username;
 
-    return Ok(new { success = true, topicId = topic.Id, message = "Konu başarıyla yayınlandı." });
-}
+            // Kullanıcı bu konuyu daha önce beğenmiş mi?
+            var existingLike = await _context.TopicLikes
+                .FirstOrDefaultAsync(l => l.TopicId == id && l.Username.ToLower() == username.ToLower());
+
+            bool isLiked;
+
+            if (existingLike != null)
+            {
+                // Zaten beğenmişse beğeniyi geri al (Unlike)
+                _context.TopicLikes.Remove(existingLike);
+                topic.LikeCount = Math.Max(0, topic.LikeCount - 1);
+                isLiked = false;
+            }
+            else
+            {
+                // Beğenmemişse yeni beğeni ekle
+                _context.TopicLikes.Add(new TopicLike { TopicId = id, Username = username });
+                topic.LikeCount += 1;
+                isLiked = true;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { likes = topic.LikeCount, isLiked });
+        }
+
+        public class LikeRequestDto
+        {
+            public string Username { get; set; } = string.Empty;
+        }
     }
 }

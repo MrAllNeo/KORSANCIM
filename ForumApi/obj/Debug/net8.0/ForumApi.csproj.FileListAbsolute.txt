@@ -121,3 +121,4 @@
 /home/berkay/korsancim/ForumApi/bin/Debug/net8.0/runtimes/win-arm64/native/e_sqlite3.dll
 /home/berkay/korsancim/ForumApi/bin/Debug/net8.0/runtimes/win-x64/native/e_sqlite3.dll
 /home/berkay/korsancim/ForumApi/bin/Debug/net8.0/runtimes/win-x86/native/e_sqlite3.dll
+/home/berkay/korsancim/ForumApi/bin/Debug/net8.0/ForumApi.staticwebassets.runtime.json

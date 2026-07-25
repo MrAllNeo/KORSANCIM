@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konu Detayı - DevForum</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body
+    class="bg-slate-950 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.2),rgba(255,255,255,0))] min-h-screen text-slate-100 antialiased font-sans p-4 md:p-8">
+
+    <header
+        class="max-w-4xl mx-auto bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 shadow-2xl rounded-2xl p-4 flex justify-between items-center mb-8">
+        <a href="index.html" class="flex items-center gap-3">
+            <div
+                class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-600/30">
+                F</div>
+            <span
+                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">DevForum</span>
+        </a>
+        <a href="index.html" class="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> Ana Sayfaya Dön
+        </a>
+    </header>
+
+    <main class="max-w-4xl mx-auto space-y-6">
+        <div id="topic-container"
+            class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+            <p class="text-xs text-slate-500 animate-pulse">Konu detayları yükleniyor...</p>
+        </div>
+
+        <div class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+            <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <i data-lucide="message-square-plus" class="w-4 h-4 text-indigo-400"></i> Bu Konuya Yanıt Ver
+            </h3>
+            <form id="comment-form" class="space-y-4">
+                <textarea id="comment-content" rows="3" required placeholder="Düşüncelerini rumuzunla paylaş..."
+                    class="w-full bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition resize-none"></textarea>
+                <div class="flex justify-end">
+                    <button type="submit"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-xs font-semibold transition shadow-lg shadow-indigo-600/25 flex items-center gap-1.5">
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i> Yanıtı Gönder
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="space-y-3">
+            <h3 class="text-sm font-bold text-slate-300 flex items-center gap-2">
+                <i data-lucide="messages-square" class="w-4 h-4 text-indigo-400"></i> Yanıtlar
+            </h3>
+            <div id="comments-container" class="space-y-3">
+                <p class="text-xs text-slate-500">Yanıtlar yükleniyor...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const topicId = urlParams.get('id');
+
+        const DEFAULT_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="%23818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+
+        async function loadTopicDetail() {
+            const container = document.getElementById('topic-container');
+            if (!topicId) {
+                container.innerHTML = `<div class="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl">Konu ID bulunamadı.</div>`;
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/topics/${topicId}`);
+                if (!res.ok) throw new Error('Konu çekilemedi.');
+                const topic = await res.json();
+
+                const formattedDate = new Date(topic.createdAt).toLocaleDateString('tr-TR', {
+                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                });
+
+                let mediaHtml = '';
+                if (topic.fileUrls && topic.fileUrls.length > 0) {
+                    let imagesHtml = '';
+                    let filesHtml = '';
+
+                    topic.fileUrls.forEach(url => {
+                        const ext = url.split('.').pop().toLowerCase();
+                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                            imagesHtml += `<a href="${url}" target="_blank" class="block overflow-hidden rounded-xl border border-slate-800"><img src="${url}" class="w-full h-48 object-cover"></a>`;
+                        } else {
+                            filesHtml += `<div class="flex items-center justify-between bg-slate-950/70 p-3 rounded-xl border border-slate-800"><span class="text-xs text-slate-200">${url.split('/').pop()}</span><a href="${url}" download class="text-xs text-indigo-400 underline">İndir</a></div>`;
+                        }
+                    });
+
+                    mediaHtml = `<div class="mt-4 pt-4 border-t border-slate-800/80 space-y-3">${imagesHtml ? `<div class="grid grid-cols-2 gap-2">${imagesHtml}</div>` : ''}${filesHtml}</div>`;
+                }
+
+                const author = topic.authorUsername || 'Anonim';
+                const isCreator = author.toLowerCase().includes('creator') || author.toLowerCase().includes('admin');
+
+                const authorBadge = isCreator
+                    ? `<span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-300 bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-amber-500/40 px-2.5 py-0.5 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.3)] animate-pulse"><i data-lucide="crown" class="w-3 h-3 text-amber-400"></i> CREATOR & FOUNDER</span>`
+                    : `<span class="text-[10px] font-semibold text-slate-400 bg-slate-800/80 border border-slate-700/60 px-2 py-0.5 rounded-md">Dev Member</span>`;
+
+                const authorNameHtml = isCreator
+                    ? `<strong class="font-extrabold bg-gradient-to-r from-amber-300 via-rose-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(244,63,94,0.4)]">${author}</strong>`
+                    : `<strong class="text-slate-200 font-semibold">${author}</strong>`;
+
+                container.innerHTML = `
+                    <div class="flex items-center justify-between gap-4 mb-4">
+                        <span class="text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-lg">Kategori #${topic.categoryId}</span>
+                        <span class="text-xs text-slate-500">${formattedDate}</span>
+                    </div>
+                    <h1 class="text-xl font-bold text-white mb-3">${topic.title}</h1>
+                    <p class="text-sm text-slate-300 leading-relaxed whitespace-pre-line mb-4">${topic.content}</p>
+                    ${mediaHtml}
+                    
+                    <div class="mt-6 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
+                        <a href="profile.html?u=${author}" class="flex items-center gap-2.5 hover:opacity-80 transition">
+                            <div class="w-7 h-7 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center overflow-hidden shrink-0"><img src="${DEFAULT_AVATAR}" class="w-full h-full object-cover"></div>
+                            <span>Yazar: ${authorNameHtml}</span>
+                        </a>
+                        
+                        <div class="flex items-center gap-3">
+                            <button onclick="likeDetailTopic(${topic.id}, this)" class="flex items-center gap-1.5 hover:text-rose-400 transition bg-slate-950/60 border border-slate-800 hover:border-rose-500/30 px-3 py-1.5 rounded-xl">
+                                <i data-lucide="heart" class="w-4 h-4 text-rose-500"></i>
+                                <span class="topic-like-count font-bold text-slate-200">${topic.likeCount || 0}</span>
+                            </button>
+                            ${authorBadge}
+                        </div>
+                    </div>`;
+
+                lucide.createIcons();
+            } catch (err) {
+                console.error('Konu Yükleme Hatası:', err);
+                container.innerHTML = `<div class="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl">Konu detayları yüklenirken sunucu hatası oluştu.</div>`;
+            }
+        }
+
+        async function loadComments() {
+            if (!topicId) return;
+            try {
+                const res = await fetch(`/api/comments/topic/${topicId}`);
+                const comments = await res.json();
+                const container = document.getElementById('comments-container');
+
+                if (!comments || comments.length === 0) {
+                    container.innerHTML = `<div class="p-4 bg-slate-900/30 border border-slate-800 rounded-xl text-xs text-slate-500">Henüz yanıt yazılmamış. İlk yanıtı sen ver!</div>`;
+                    return;
+                }
+
+                container.innerHTML = comments.map(c => {
+                    const date = new Date(c.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                    const author = c.authorUsername || 'Anonim';
+                    const isCreator = author.toLowerCase().includes('creator') || author.toLowerCase().includes('admin');
+
+                    const badgeHtml = isCreator
+                        ? `<span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded-full animate-pulse"><i data-lucide="crown" class="w-3 h-3 text-amber-400"></i> CREATOR</span>`
+                        : `<span class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">Dev Member</span>`;
+
+                    const usernameHtml = isCreator
+                        ? `<span class="font-extrabold text-xs bg-gradient-to-r from-amber-300 via-rose-400 to-indigo-400 bg-clip-text text-transparent">${author}</span>`
+                        : `<span class="font-semibold text-xs text-indigo-400">${author}</span>`;
+
+                    return `
+                        <div class="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 shadow-lg space-y-3">
+                            <div class="flex items-center justify-between">
+                                <a href="profile.html?u=${author}" class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center overflow-hidden shrink-0"><img src="${DEFAULT_AVATAR}" class="w-full h-full object-cover"></div>
+                                    <div class="flex items-center gap-2">${usernameHtml}${badgeHtml}</div>
+                                </a>
+                                <span class="text-[11px] text-slate-500">${date}</span>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed whitespace-pre-line pl-9">${c.content}</p>
+
+                            <div class="flex items-center justify-end pt-2 border-t border-slate-800/60">
+                                <button onclick="likeComment(${c.id}, this)" class="flex items-center gap-1 text-xs text-slate-400 hover:text-rose-400 transition bg-slate-950/50 border border-slate-800 hover:border-rose-500/30 px-2.5 py-1 rounded-lg">
+                                    <i data-lucide="heart" class="w-3.5 h-3.5 text-rose-500"></i>
+                                    <span class="comment-like-count font-semibold">${c.likeCount || 0}</span>
+                                </button>
+                            </div>
+                        </div>`;
+                }).join('');
+
+                lucide.createIcons();
+            } catch (err) {
+                console.error('Yorum Yükleme Hatası:', err);
+            }
+        }
+
+        // Konu Detay Beğenme (1 Kullanıcı = 1 Beğeni / Toggle)
+        async function likeDetailTopic(id, btnElement) {
+            const storedUser = localStorage.getItem('currentUser');
+            const username = storedUser ? JSON.parse(storedUser).username : 'Anonim';
+
+            try {
+                const res = await fetch(`/api/topics/${id}/like`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const countSpan = btnElement.querySelector('.topic-like-count');
+                    if (countSpan) {
+                        countSpan.innerText = data.likes;
+                    }
+
+                    if (data.isLiked) {
+                        btnElement.classList.add('text-rose-400', 'border-rose-500/50');
+                    } else {
+                        btnElement.classList.remove('text-rose-400', 'border-rose-500/50');
+                    }
+                }
+            } catch (err) {
+                console.error('Konu Like Hatası:', err);
+            }
+        }
+
+        // Yorum Beğenme (1 Kullanıcı = 1 Beğeni / Toggle)
+        async function likeComment(id, btnElement) {
+            const storedUser = localStorage.getItem('currentUser');
+            const username = storedUser ? JSON.parse(storedUser).username : 'Anonim';
+
+            try {
+                const res = await fetch(`/api/comments/${id}/like`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const countSpan = btnElement.querySelector('.comment-like-count');
+                    if (countSpan) {
+                        countSpan.innerText = data.likes;
+                    }
+
+                    if (data.isLiked) {
+                        btnElement.classList.add('text-rose-400', 'border-rose-500/50');
+                    } else {
+                        btnElement.classList.remove('text-rose-400', 'border-rose-500/50');
+                    }
+                }
+            } catch (err) {
+                console.error('Yorum Like Hatası:', err);
+            }
+        }
+
+        document.getElementById('comment-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const content = document.getElementById('comment-content').value;
+            const storedUser = localStorage.getItem('currentUser');
+            const authorUsername = storedUser ? JSON.parse(storedUser).username : 'CREATOR';
+
+            try {
+                const res = await fetch('/api/comments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topicId: parseInt(topicId), content, authorUsername })
+                });
+
+                if (res.ok) {
+                    document.getElementById('comment-content').value = '';
+                    loadComments();
+                }
+            } catch (err) { console.error(err); }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTopicDetail();
+            loadComments();
+        });
+    </script>
+</body>
+
+</html>

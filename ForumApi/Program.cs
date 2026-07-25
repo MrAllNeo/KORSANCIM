@@ -39,5 +39,8 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.UseCors("AllowAll");
 app.MapControllers();
+// Statik HTML/JS/CSS dosyalarını sunmasını sağlıyoruz
+app.UseDefaultFiles(); // http://localhost:5085 açıldığında direkt index.html'i yükler
+app.UseStaticFiles();  // frontend klasöründeki html/css/js dosyalarını dışarı açar
 
 app.Run();

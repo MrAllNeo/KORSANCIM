@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using ForumApi.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ForumApi.Data
 {
@@ -7,8 +7,12 @@ namespace ForumApi.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public DbSet<User> Users => Set<User>();
-        public DbSet<Topic> Topics => Set<Topic>();
-        public DbSet<Comment> Comments => Set<Comment>();
+        public DbSet<Topic> Topics { get; set; }
+        public DbSet<Comment> Comments { get; set; }
+        public DbSet<User> Users { get; set; }
+
+        // YENİ BEĞENİ TABLOLARI
+        public DbSet<TopicLike> TopicLikes { get; set; }
+        public DbSet<CommentLike> CommentLikes { get; set; }
     }
 }

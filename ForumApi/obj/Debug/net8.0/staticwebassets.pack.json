@@ -1,0 +1,41 @@
+{
+  "Files": [
+    {
+      "Id": "/home/berkay/korsancim/ForumApi/wwwroot/auth.html",
+      "PackagePath": "staticwebassets/auth.html"
+    },
+    {
+      "Id": "/home/berkay/korsancim/ForumApi/wwwroot/create-topic.html",
+      "PackagePath": "staticwebassets/create-topic.html"
+    },
+    {
+      "Id": "/home/berkay/korsancim/ForumApi/wwwroot/index.html",
+      "PackagePath": "staticwebassets/index.html"
+    },
+    {
+      "Id": "/home/berkay/korsancim/ForumApi/wwwroot/profile.html",
+      "PackagePath": "staticwebassets/profile.html"
+    },
+    {
+      "Id": "/home/berkay/korsancim/ForumApi/wwwroot/topic-detail.html",
+      "PackagePath": "staticwebassets/topic-detail.html"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.ForumApi.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.build.ForumApi.props",
+      "PackagePath": "build\\ForumApi.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildMultiTargeting.ForumApi.props",
+      "PackagePath": "buildMultiTargeting\\ForumApi.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildTransitive.ForumApi.props",
+      "PackagePath": "buildTransitive\\ForumApi.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
