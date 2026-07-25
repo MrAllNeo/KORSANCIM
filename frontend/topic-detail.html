@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konu Detayı - DevForum</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body
+    class="bg-slate-950 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.2),rgba(255,255,255,0))] min-h-screen text-slate-100 antialiased font-sans p-4 md:p-8">
+
+    <header
+        class="max-w-4xl mx-auto bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 shadow-2xl rounded-2xl p-4 flex justify-between items-center mb-8">
+        <a href="index.html" class="flex items-center gap-3">
+            <div
+                class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-600/30">
+                F</div>
+            <span
+                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">DevForum</span>
+        </a>
+        <a href="index.html" class="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> Ana Sayfaya Dön
+        </a>
+    </header>
+
+    <main class="max-w-4xl mx-auto space-y-6">
+        <!-- KONU DETAY KARTI -->
+        <div id="topic-container"
+            class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+            <p class="text-xs text-slate-500 animate-pulse">Konu detayları yükleniyor...</p>
+        </div>
+
+        <!-- YANIT YAZMA FORMU -->
+        <div class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+            <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <i data-lucide="message-square-plus" class="w-4 h-4 text-indigo-400"></i> Bu Konuya Yanıt Ver
+            </h3>
+            <form id="comment-form" class="space-y-4">
+                <textarea id="comment-content" rows="3" required placeholder="Düşüncelerini anonim olarak paylaş..."
+                    class="w-full bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition resize-none"></textarea>
+                <div class="flex justify-end">
+                    <button type="submit"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-xs font-semibold transition shadow-lg shadow-indigo-600/25 flex items-center gap-1.5">
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i> Yanıtı Gönder
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- YORUMLAR LİSTESİ -->
+        <div class="space-y-3">
+            <h3 class="text-sm font-bold text-slate-300 flex items-center gap-2">
+                <i data-lucide="messages-square" class="w-4 h-4 text-indigo-400"></i> Yanıtlar
+            </h3>
+            <div id="comments-container" class="space-y-3">
+                <p class="text-xs text-slate-500">Yanıtlar yükleniyor...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const topicId = urlParams.get('id');
+
+        const API_BASE = 'http://localhost:5085/api';
+        const SERVER_BASE = 'http://localhost:5085';
+
+        // 1. Konu Detayını Çekme ve Medyaları Akıllıca Gösterme
+        // 1. Konu Detayını Çekme ve Medyaları Akıllıca Gösterme
+        async function loadTopicDetail() {
+            if (!topicId) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/topics/${topicId}`);
+                const topic = await res.json();
+
+                const formattedDate = new Date(topic.createdAt).toLocaleDateString('tr-TR', {
+                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                });
+
+                // Eklenen dosyaları türüne göre (Resim, Video, Dosya/Klasör) ayırma
+                let mediaHtml = '';
+                if (topic.fileUrls && topic.fileUrls.length > 0) {
+                    let imagesHtml = '';
+                    let videosHtml = '';
+                    let fileExplorerHtml = '';
+
+                    topic.fileUrls.forEach(url => {
+                        const fullUrl = `${SERVER_BASE}${url}`;
+                        const ext = url.split('.').pop().toLowerCase();
+
+                        // GUID ile çakışmayı önlemek için orijinal dosya adını çekelim
+                        const rawFileName = url.split('_').slice(1).join('_') || 'Dosya';
+
+                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                            imagesHtml += `
+                        <a href="${fullUrl}" target="_blank" class="block overflow-hidden rounded-xl border border-slate-800 hover:border-indigo-500/50 transition group">
+                            <img src="${fullUrl}" alt="Yüklenen Görsel" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300" loading="lazy">
+                        </a>
+                    `;
+                        } else if (['mp4', 'webm', 'ogg'].includes(ext)) {
+                            videosHtml += `
+                        <div class="rounded-xl overflow-hidden border border-slate-800 bg-black">
+                            <video controls class="w-full max-h-96">
+                                <source src="${fullUrl}">
+                                Tarayıcınız video oynatmayı desteklemiyor.
+                            </video>
+                        </div>
+                    `;
+                        } else {
+                            // Kod, Belge, PDF veya Arşiv Dosyaları için Klasör/Dosya Yöneticisi Satırı
+                            let fileIcon = 'file-text';
+                            if (['pdf'].includes(ext)) fileIcon = 'file-type-2';
+                            if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) fileIcon = 'archive';
+                            if (['cs', 'js', 'html', 'css', 'json', 'py', 'cpp'].includes(ext)) fileIcon = 'file-code';
+
+                            fileExplorerHtml += `
+                        <div class="flex items-center justify-between bg-slate-950/70 border border-slate-800/80 hover:border-indigo-500/40 rounded-xl p-3 transition group">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                                    <i data-lucide="${fileIcon}" class="w-4 h-4"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-semibold text-slate-200 truncate">${rawFileName}</p>
+                                    <p class="text-[10px] text-slate-500 uppercase font-mono">${ext} dosyası</p>
+                                </div>
+                            </div>
+                            <a href="${fullUrl}" download="${rawFileName}" class="shrink-0 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> İndir
+                            </a>
+                        </div>
+                    `;
+                        }
+                    });
+
+                    mediaHtml = `
+                <div class="mt-6 pt-4 border-t border-slate-800/80 space-y-4">
+                    <h4 class="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="folder-open" class="w-4 h-4 text-indigo-400"></i> Ek Dosyalar ve Klasör İçeriği (${topic.fileUrls.length}):
+                    </h4>
+                    
+                    ${imagesHtml ? `<div class="grid grid-cols-1 md:grid-cols-2 gap-3">${imagesHtml}</div>` : ''}
+                    ${videosHtml ? `<div class="space-y-3">${videosHtml}</div>` : ''}
+                    
+                    ${fileExplorerHtml ? `
+                        <div class="bg-slate-900/30 border border-slate-800/60 rounded-2xl p-3 space-y-2">
+                            ${fileExplorerHtml}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+                }
+
+                document.getElementById('topic-container').innerHTML = `
+            <div class="flex items-center justify-between gap-4 mb-4">
+                <span class="text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-lg">
+                    Kategori #${topic.categoryId}
+                </span>
+                <span class="text-xs text-slate-500">${formattedDate}</span>
+            </div>
+            <h1 class="text-xl font-bold text-white mb-3">${topic.title}</h1>
+            <p class="text-sm text-slate-300 leading-relaxed whitespace-pre-line">${topic.content}</p>
+            ${mediaHtml}
+            <div class="mt-6 pt-4 border-t border-slate-800/60 flex items-center gap-2 text-xs text-slate-400">
+                <div class="w-6 h-6 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-bold text-indigo-400">
+                    ${topic.authorUsername ? topic.authorUsername.charAt(0).toUpperCase() : 'A'}
+                </div>
+                <span>Yazar: <strong class="text-slate-200">${topic.authorUsername || 'Anonim'}</strong></span>
+            </div>
+        `;
+
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // 2. Yanıtları Çekme
+        async function loadComments() {
+            if (!topicId) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/comments/topic/${topicId}`);
+                const comments = await res.json();
+
+                const container = document.getElementById('comments-container');
+
+                if (comments.length === 0) {
+                    container.innerHTML = `<div class="p-4 bg-slate-900/30 border border-slate-800 rounded-xl text-xs text-slate-500">Henüz yanıt yazılmamış. İlk yanıtı sen ver!</div>`;
+                    return;
+                }
+
+                container.innerHTML = comments.map(c => {
+                    const date = new Date(c.createdAt).toLocaleDateString('tr-TR', {
+                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                    });
+                    return `
+                        <div class="bg-slate-900/40 border border-slate-800/80 rounded-xl p-4 space-y-2">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-semibold text-indigo-400">${c.authorUsername}</span>
+                                <span class="text-slate-500">${date}</span>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed">${c.content}</p>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // 3. Yanıt Gönderme
+        document.getElementById('comment-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const content = document.getElementById('comment-content').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topicId: parseInt(topicId), content })
+                });
+
+                if (res.ok) {
+                    document.getElementById('comment-content').value = '';
+                    loadComments();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTopicDetail();
+            loadComments();
+        });
+        const storedUser = localStorage.getItem('currentUser');
+        const username = storedUser ? JSON.parse(storedUser).username : 'Anonim_Dev';
+
+        const res = await fetch(`${API_BASE}/comments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                topicId: parseInt(topicId),
+                content,
+                authorUsername: username
+            })
+        });
+    </script>
+</body>
+
+</html>

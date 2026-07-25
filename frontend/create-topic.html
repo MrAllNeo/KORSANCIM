@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yeni Konu Aç - DevForum</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body
+    class="bg-slate-950 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.2),rgba(255,255,255,0))] min-h-screen text-slate-100 antialiased font-sans p-4 md:p-8">
+
+    <header
+        class="max-w-3xl mx-auto bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 shadow-2xl rounded-2xl p-4 flex justify-between items-center mb-8">
+        <a href="index.html" class="flex items-center gap-3">
+            <div
+                class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-600/30">
+                F</div>
+            <span
+                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">DevForum</span>
+        </a>
+        <a href="index.html" class="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1">
+            <i data-lucide="x" class="w-4 h-4"></i> İptal Et
+        </a>
+    </header>
+
+    <main class="max-w-3xl mx-auto">
+        <div class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+            <h1 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-5 h-5 text-indigo-400"></i> Yeni Tartışma / Konu Başlat
+            </h1>
+            <p class="text-xs text-slate-400 mb-6">Toplulukla paylaşmak istediğin soruyu veya konuyu anonim rumuzunla
+                oluştur.</p>
+
+            <form id="create-topic-form" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Konu Başlığı</label>
+                    <input type="text" id="topic-title" required placeholder="Dikkat çekici ve kısa bir başlık girin..."
+                        class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Kategori</label>
+                    <select id="topic-category" required
+                        class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition">
+                        <option value="" disabled selected>Bir kategori seçin</option>
+                        <option value="1">Yazılım & Kodlama</option>
+                        <option value="2">Donanım & Sistem</option>
+                        <option value="3">Geyik & Sohbet</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">İçerik Detayı</label>
+                    <textarea id="topic-content" rows="5" required placeholder="Detayları buraya yazın..."
+                        class="w-full bg-slate-950/70 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition resize-none"></textarea>
+                </div>
+
+                <!-- Medya veya Dosya / Klasör Yükleme Alanı -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-slate-300">Medya, Dosya veya Klasör Ekle</label>
+                        <span class="text-[10px] text-slate-500 font-medium">Çoklu Seçim & Klasör Destekli</span>
+                    </div>
+                    <div
+                        class="relative border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-2xl p-6 text-center transition bg-slate-950/40 group cursor-pointer">
+                        <!-- Klasör ve Çoklu Dosya Yükleme Input'u -->
+                        <input type="file" id="topic-files" multiple webkitdirectory directory
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            onchange="handleFileSelect(event)">
+
+                        <div class="flex flex-col items-center justify-center gap-2 pointer-events-none">
+                            <div
+                                class="w-10 h-10 rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:scale-110 transition duration-300">
+                                <i data-lucide="folder-up" class="w-5 h-5"></i>
+                            </div>
+                            <p class="text-xs text-slate-300 font-medium">Dosya/Klasör seçmek için tıklayın veya buraya
+                                sürükleyin</p>
+                            <p class="text-[11px] text-slate-500">Çoklu dosya, resim, video veya komple klasör
+                                yükleyebilirsiniz</p>
+                        </div>
+                    </div>
+
+                    <!-- Seçilen Dosyaların Listelendiği Alan -->
+                    <div id="file-list" class="mt-3 space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
+                </div>
+
+                <!-- Yasal Onay Kutusu -->
+                <div class="bg-rose-500/5 border border-rose-500/20 rounded-2xl p-4 mt-6">
+                    <div class="flex items-start gap-3">
+                        <input type="checkbox" id="legal-terms" required
+                            class="mt-1 w-4 h-4 rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-indigo-500/50 cursor-pointer">
+                        <label for="legal-terms"
+                            class="text-xs text-slate-300 leading-relaxed cursor-pointer select-none">
+                            <strong class="text-rose-400 font-semibold block mb-0.5">Topluluk Kuralları & Sorumluluk
+                                Reddi:</strong>
+                            Paylaştığım içeriğin tüm yasal ve cezai sorumluluğunun şahsıma ait olduğunu; illegal
+                            faaliyetler, çocuk istismarı/saldırganlığı, ırkçılık, dini veya kültürel değerleri
+                            aşağılayan ya da ayrımcılık içeren ögeler barındırmadığını beyan ederim.
+                        </label>
+                    </div>
+                </div>
+
+                <!-- KIRMIZI HATA MESAJI BİLDİRİM ALANI -->
+                <div id="error-message"
+                    class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-400 p-3.5 rounded-xl text-xs font-medium flex items-center gap-2 animate-bounce">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+                    <span id="error-text">Bir hata oluştu.</span>
+                </div>
+
+                <div class="flex justify-end pt-2">
+                    <button type="submit" id="submit-btn"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition shadow-lg shadow-indigo-600/25 flex items-center gap-2">
+                        <i data-lucide="send" class="w-4 h-4"></i> Konuyu Yayınla
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        let selectedFilesArray = [];
+
+        // Seçilen dosya veya klasör içeriklerini yakalama
+        function handleFileSelect(event) {
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = '';
+            const files = event.target.files;
+
+            // Seçilen tüm geçerli dosyaları listeye al
+            selectedFilesArray = Array.from(files).filter(file => file.size > 0);
+
+            if (selectedFilesArray.length > 0) {
+                selectedFilesArray.forEach((file, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-1.5 text-xs';
+
+                    // Dosya yolu klasörlü ise relativePath göster
+                    const fileName = file.webkitRelativePath || file.name;
+                    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+
+                    item.innerHTML = `
+                        <div class="flex items-center gap-2 min-w-0">
+                            <i data-lucide="file" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i>
+                            <span class="truncate max-w-xs text-slate-300 font-medium">${fileName}</span>
+                        </div>
+                        <span class="text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 shrink-0">${fileSizeMB} MB</span>
+                    `;
+                    fileList.appendChild(item);
+                });
+                lucide.createIcons();
+            }
+        }
+
+        // Form Gönderme İşlemi
+        document.getElementById('create-topic-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const errorBox = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            const submitBtn = document.getElementById('submit-btn');
+
+            // Hata kutusunu gizle
+            errorBox.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('title', document.getElementById('topic-title').value);
+            formData.append('categoryId', document.getElementById('topic-category').value);
+            formData.append('content', document.getElementById('topic-content').value);
+            formData.append('termsAccepted', document.getElementById('legal-terms').checked);
+
+            // Seçilen tüm dosyaları FormData'ya ekle
+            if (selectedFilesArray.length > 0) {
+                selectedFilesArray.forEach(file => {
+                    formData.append('files', file);
+                });
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Gönderiliyor...`;
+            lucide.createIcons();
+
+            try {
+                // C# API Bağlantısı (Port: 5085)
+                const response = await fetch('http://localhost:5085/api/topics', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Tebrikler! Konunuz ve dosyalarınız başarıyla yayınlandı.');
+                    window.location.href = 'index.html';
+                } else {
+                    // API Hata verirse Kırmızı Kutuda Göster
+                    errorText.innerText = result.error || 'Konu gönderilemedi. Lütfen bilgileri kontrol edin.';
+                    errorBox.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Bağlantı hatası:', error);
+                // Bağlantı koparsa Kırmızı Kutuda Göster
+                errorText.innerText = 'C# Sunucusuna bağlanılamadı! Lütfen terminalde "dotnet run" (Port 5085) çalıştığından emin olun.';
+                errorBox.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i> Konuyu Yayınla`;
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+
+</html>
