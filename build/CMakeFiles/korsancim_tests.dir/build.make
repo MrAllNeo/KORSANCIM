@@ -76,43 +76,43 @@ CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o: CMakeFiles/korsancim_test
 CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o: /home/berkay/korsancim/backend/tests/unit_tests.cpp
 CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o: CMakeFiles/korsancim_tests.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/berkay/korsancim/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o -MF CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o.d -o CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o -c /home/berkay/korsancim/backend/tests/unit_tests.cpp
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o -MF CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o.d -o CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o -c /home/berkay/korsancim/backend/tests/unit_tests.cpp
 
 CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/berkay/korsancim/backend/tests/unit_tests.cpp > CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.i
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/berkay/korsancim/backend/tests/unit_tests.cpp > CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.i
 
 CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/berkay/korsancim/backend/tests/unit_tests.cpp -o CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.s
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/berkay/korsancim/backend/tests/unit_tests.cpp -o CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.s
 
 CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o: CMakeFiles/korsancim_tests.dir/flags.make
 CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o: /home/berkay/korsancim/backend/src/db/database.cpp
 CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o: CMakeFiles/korsancim_tests.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/berkay/korsancim/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o -MF CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o.d -o CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o -c /home/berkay/korsancim/backend/src/db/database.cpp
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o -MF CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o.d -o CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o -c /home/berkay/korsancim/backend/src/db/database.cpp
 
 CMakeFiles/korsancim_tests.dir/src/db/database.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/korsancim_tests.dir/src/db/database.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/berkay/korsancim/backend/src/db/database.cpp > CMakeFiles/korsancim_tests.dir/src/db/database.cpp.i
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/berkay/korsancim/backend/src/db/database.cpp > CMakeFiles/korsancim_tests.dir/src/db/database.cpp.i
 
 CMakeFiles/korsancim_tests.dir/src/db/database.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/korsancim_tests.dir/src/db/database.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/berkay/korsancim/backend/src/db/database.cpp -o CMakeFiles/korsancim_tests.dir/src/db/database.cpp.s
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/berkay/korsancim/backend/src/db/database.cpp -o CMakeFiles/korsancim_tests.dir/src/db/database.cpp.s
 
 CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o: CMakeFiles/korsancim_tests.dir/flags.make
 CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o: /home/berkay/korsancim/backend/src/utils/logger.cpp
 CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o: CMakeFiles/korsancim_tests.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/berkay/korsancim/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o -MF CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o.d -o CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o -c /home/berkay/korsancim/backend/src/utils/logger.cpp
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o -MF CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o.d -o CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o -c /home/berkay/korsancim/backend/src/utils/logger.cpp
 
 CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/berkay/korsancim/backend/src/utils/logger.cpp > CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.i
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/berkay/korsancim/backend/src/utils/logger.cpp > CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.i
 
 CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/berkay/korsancim/backend/src/utils/logger.cpp -o CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.s
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/berkay/korsancim/backend/src/utils/logger.cpp -o CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.s
 
 # Object files for target korsancim_tests
 korsancim_tests_OBJECTS = \
