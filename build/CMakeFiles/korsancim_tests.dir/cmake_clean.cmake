@@ -2,6 +2,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/korsancim_tests.dir/link.d"
   "CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o"
   "CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o.d"
+  "CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o"
+  "CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o.d"
   "CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o"
   "CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o.d"
   "korsancim_tests"

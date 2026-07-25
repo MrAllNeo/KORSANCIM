@@ -362,4 +362,6 @@ CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o: \
  /home/berkay/korsancim/backend/include/jwt-cpp/traits/kazuho-picojson/traits.h \
  /home/berkay/korsancim/backend/include/utils/hash_helper.hpp \
  /usr/include/openssl/rand.h /usr/include/openssl/randerr.h \
- /usr/include/c++/14/iomanip /usr/include/c++/14/bits/quoted_string.h
+ /usr/include/c++/14/iomanip /usr/include/c++/14/bits/quoted_string.h \
+ /home/berkay/korsancim/backend/include/utils/logger.hpp \
+ /home/berkay/korsancim/backend/include/./middleware/rate_limiter.hpp

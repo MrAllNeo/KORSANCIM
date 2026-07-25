@@ -9,6 +9,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/berkay/korsancim/backend/src/db/database.cpp" "CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o" "gcc" "CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o.d"
+  "/home/berkay/korsancim/backend/src/utils/logger.cpp" "CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o" "gcc" "CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o.d"
   "/home/berkay/korsancim/backend/tests/unit_tests.cpp" "CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o" "gcc" "CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o.d"
   "" "korsancim_tests" "gcc" "CMakeFiles/korsancim_tests.dir/link.d"
   )

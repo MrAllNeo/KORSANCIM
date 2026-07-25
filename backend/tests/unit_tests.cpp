@@ -3,6 +3,8 @@
 #include <fstream>
 #include "utils/jwt_helper.hpp"
 #include "utils/hash_helper.hpp"
+#include "utils/logger.hpp"
+#include "./middleware/rate_limiter.hpp"
 // Test için geçici bir test veritabanı oluşturan fixture
 class DatabaseTest : public ::testing::Test {
 protected:
@@ -92,4 +94,61 @@ TEST(HashTest, PasswordHashingAndVerification) {
     // 3. Yanlış şifre ile doğrulama dene
     bool is_wrong = Korsancim::HashHelper::verify_password("Yanlis_Sifre_123", hashed_password);
     EXPECT_FALSE(is_wrong);
+}
+// TEST 6: User Ban & Role Management Test
+// TEST 6: User Ban & Role Management Test
+TEST(AdminTest, BanAndRoleManagement) {
+    Korsancim::Database db("test_korsancim.db");
+    ASSERT_TRUE(db.connect());
+
+    // Tabloların var olduğundan emin olalım
+    db.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password_hash TEXT, role TEXT DEFAULT 'user', is_banned INTEGER DEFAULT 0, ban_reason TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);");
+
+    std::string test_user = "banli_korsan";
+    db.register_user(test_user, "Sifre123!");
+
+    Korsancim::User u;
+    ASSERT_TRUE(db.get_user_by_username(test_user, u));
+    EXPECT_FALSE(u.is_banned);
+
+    // 1. Kullanıcıyı Banla
+    EXPECT_TRUE(db.ban_user(u.id, "Kural ihlali yapti"));
+    
+    Korsancim::User banned_u;
+    ASSERT_TRUE(db.get_user_by_username(test_user, banned_u));
+    EXPECT_TRUE(banned_u.is_banned);
+    EXPECT_EQ(banned_u.ban_reason, "Kural ihlali yapti");
+
+    // 2. Banı Kaldır
+    EXPECT_TRUE(db.unban_user(u.id));
+    
+    Korsancim::User unbanned_u;
+    ASSERT_TRUE(db.get_user_by_username(test_user, unbanned_u));
+    EXPECT_FALSE(unbanned_u.is_banned);
+
+    // 3. Rolü Moderator Yap
+    EXPECT_TRUE(db.update_user_role(u.id, "moderator"));
+    
+    Korsancim::User mod_u;
+    ASSERT_TRUE(db.get_user_by_username(test_user, mod_u));
+    EXPECT_EQ(mod_u.role, "moderator");
+
+    db.disconnect();
+}
+// TEST 7: Logger Testi
+TEST(LoggerTest, ConsoleLogging) {
+    EXPECT_NO_THROW(Korsancim::Logger::info("Test bilgi mesaji"));
+    EXPECT_NO_THROW(Korsancim::Logger::warn("Test uyari mesaji"));
+    EXPECT_NO_THROW(Korsancim::Logger::error("Test hata mesaji"));
+}
+// TEST 8: Rate Limiter (Brute-Force Koruması)
+TEST(MiddlewareTest, RateLimiting) {
+    // 1 saniyede maksimum 3 isteğe izin veren sınarlayıcı
+    Korsancim::RateLimiter limiter(3, 1); 
+    std::string test_ip = "192.168.1.100";
+
+    EXPECT_TRUE(limiter.is_allowed(test_ip));  // 1. İstek - İzin Verildi
+    EXPECT_TRUE(limiter.is_allowed(test_ip));  // 2. İstek - İzin Verildi
+    EXPECT_TRUE(limiter.is_allowed(test_ip));  // 3. İstek - İzin Verildi
+    EXPECT_FALSE(limiter.is_allowed(test_ip)); // 4. İstek - BLOKLANDI!
 }

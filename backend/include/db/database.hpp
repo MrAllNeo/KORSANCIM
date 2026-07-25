@@ -10,7 +10,10 @@ namespace Korsancim {
     struct User {
         int id;
         std::string username;
-        std::string role;
+        std::string role;          // "user", "moderator", "admin"
+        bool is_banned;
+        std::string ban_reason;
+        std::string created_at;
     };
 
     struct Category {
@@ -58,6 +61,12 @@ namespace Korsancim {
         bool register_user(const std::string& username, const std::string& raw_password);
         bool authenticate_user(const std::string& username, const std::string& raw_password);
         bool get_user_by_username(const std::string& username, User& out_user);
+        
+        // Admin / Ban İşlemleri
+        bool ban_user(int user_id, const std::string& reason);
+        bool unban_user(int user_id);
+        bool update_user_role(int user_id, const std::string& new_role);
+        std::vector<User> get_all_users();
 
         // İçerik İşlemleri
         std::vector<Category> get_categories();

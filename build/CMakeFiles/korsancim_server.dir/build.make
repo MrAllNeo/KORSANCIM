@@ -76,47 +76,63 @@ CMakeFiles/korsancim_server.dir/src/main.cpp.o: CMakeFiles/korsancim_server.dir/
 CMakeFiles/korsancim_server.dir/src/main.cpp.o: /home/berkay/korsancim/backend/src/main.cpp
 CMakeFiles/korsancim_server.dir/src/main.cpp.o: CMakeFiles/korsancim_server.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/berkay/korsancim/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/korsancim_server.dir/src/main.cpp.o"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/korsancim_server.dir/src/main.cpp.o -MF CMakeFiles/korsancim_server.dir/src/main.cpp.o.d -o CMakeFiles/korsancim_server.dir/src/main.cpp.o -c /home/berkay/korsancim/backend/src/main.cpp
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/korsancim_server.dir/src/main.cpp.o -MF CMakeFiles/korsancim_server.dir/src/main.cpp.o.d -o CMakeFiles/korsancim_server.dir/src/main.cpp.o -c /home/berkay/korsancim/backend/src/main.cpp
 
 CMakeFiles/korsancim_server.dir/src/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/korsancim_server.dir/src/main.cpp.i"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/berkay/korsancim/backend/src/main.cpp > CMakeFiles/korsancim_server.dir/src/main.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/berkay/korsancim/backend/src/main.cpp > CMakeFiles/korsancim_server.dir/src/main.cpp.i
 
 CMakeFiles/korsancim_server.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/korsancim_server.dir/src/main.cpp.s"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/berkay/korsancim/backend/src/main.cpp -o CMakeFiles/korsancim_server.dir/src/main.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/berkay/korsancim/backend/src/main.cpp -o CMakeFiles/korsancim_server.dir/src/main.cpp.s
 
 CMakeFiles/korsancim_server.dir/src/db/database.cpp.o: CMakeFiles/korsancim_server.dir/flags.make
 CMakeFiles/korsancim_server.dir/src/db/database.cpp.o: /home/berkay/korsancim/backend/src/db/database.cpp
 CMakeFiles/korsancim_server.dir/src/db/database.cpp.o: CMakeFiles/korsancim_server.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/berkay/korsancim/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/korsancim_server.dir/src/db/database.cpp.o"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/korsancim_server.dir/src/db/database.cpp.o -MF CMakeFiles/korsancim_server.dir/src/db/database.cpp.o.d -o CMakeFiles/korsancim_server.dir/src/db/database.cpp.o -c /home/berkay/korsancim/backend/src/db/database.cpp
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/korsancim_server.dir/src/db/database.cpp.o -MF CMakeFiles/korsancim_server.dir/src/db/database.cpp.o.d -o CMakeFiles/korsancim_server.dir/src/db/database.cpp.o -c /home/berkay/korsancim/backend/src/db/database.cpp
 
 CMakeFiles/korsancim_server.dir/src/db/database.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/korsancim_server.dir/src/db/database.cpp.i"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/berkay/korsancim/backend/src/db/database.cpp > CMakeFiles/korsancim_server.dir/src/db/database.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/berkay/korsancim/backend/src/db/database.cpp > CMakeFiles/korsancim_server.dir/src/db/database.cpp.i
 
 CMakeFiles/korsancim_server.dir/src/db/database.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/korsancim_server.dir/src/db/database.cpp.s"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/berkay/korsancim/backend/src/db/database.cpp -o CMakeFiles/korsancim_server.dir/src/db/database.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/berkay/korsancim/backend/src/db/database.cpp -o CMakeFiles/korsancim_server.dir/src/db/database.cpp.s
+
+CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o: CMakeFiles/korsancim_server.dir/flags.make
+CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o: /home/berkay/korsancim/backend/src/utils/logger.cpp
+CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o: CMakeFiles/korsancim_server.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/berkay/korsancim/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o -MF CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o.d -o CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o -c /home/berkay/korsancim/backend/src/utils/logger.cpp
+
+CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/berkay/korsancim/backend/src/utils/logger.cpp > CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.i
+
+CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/berkay/korsancim/backend/src/utils/logger.cpp -o CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.s
 
 # Object files for target korsancim_server
 korsancim_server_OBJECTS = \
 "CMakeFiles/korsancim_server.dir/src/main.cpp.o" \
-"CMakeFiles/korsancim_server.dir/src/db/database.cpp.o"
+"CMakeFiles/korsancim_server.dir/src/db/database.cpp.o" \
+"CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o"
 
 # External object files for target korsancim_server
 korsancim_server_EXTERNAL_OBJECTS =
 
 korsancim_server: CMakeFiles/korsancim_server.dir/src/main.cpp.o
 korsancim_server: CMakeFiles/korsancim_server.dir/src/db/database.cpp.o
+korsancim_server: CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o
 korsancim_server: CMakeFiles/korsancim_server.dir/build.make
 korsancim_server: CMakeFiles/korsancim_server.dir/compiler_depend.ts
 korsancim_server: /usr/lib/x86_64-linux-gnu/libsqlite3.so
 korsancim_server: /usr/lib/x86_64-linux-gnu/libssl.so
 korsancim_server: /usr/lib/x86_64-linux-gnu/libcrypto.so
 korsancim_server: CMakeFiles/korsancim_server.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/berkay/korsancim/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable korsancim_server"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/berkay/korsancim/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX executable korsancim_server"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/korsancim_server.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

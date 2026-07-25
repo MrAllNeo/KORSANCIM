@@ -18,18 +18,19 @@ include_directories(
     ${OPENSSL_INCLUDE_DIR}
 )
 
-# Crow & Standalone Asio Tanımlamaları
+# Standalone Asio ve Crow Makroları
 add_definitions(-DCROW_USE_BOOST=0)
 add_definitions(-DASIO_STANDALONE)
 
-# Backend Kaynak Dosyaları
+# Backend Kaynak Dosyaları (Tam Yollarla)
 set(BACKEND_SOURCES
-    src/db/database.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/db/database.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/logger.cpp
 )
 
-# 1. SUNUCU EXECUTABLE
+# 1. SUNUCU EXECUTABLE (Main Server)
 add_executable(korsancim_server
-    src/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
     ${BACKEND_SOURCES}
 )
 
@@ -46,7 +47,7 @@ target_link_libraries(korsancim_server
 enable_testing()
 
 add_executable(korsancim_tests
-    ./tests/unit_tests.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit_tests.cpp
     ${BACKEND_SOURCES}
 )
 

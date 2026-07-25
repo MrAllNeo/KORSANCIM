@@ -4,6 +4,7 @@ korsancim_tests: \
   /usr/lib/gcc/x86_64-linux-gnu/14/crtbeginS.o \
   CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o \
   CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o \
+  CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o \
   /usr/lib/x86_64-linux-gnu/libsqlite3.so \
   /usr/lib/x86_64-linux-gnu/libssl.so \
   /usr/lib/x86_64-linux-gnu/libcrypto.so \
@@ -48,6 +49,8 @@ korsancim_tests: \
 CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o:
 
 CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o:
+
+CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o:
 
 /usr/lib/x86_64-linux-gnu/libsqlite3.so:
 

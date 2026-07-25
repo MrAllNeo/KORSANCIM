@@ -10,6 +10,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/berkay/korsancim/backend/src/db/database.cpp" "CMakeFiles/korsancim_server.dir/src/db/database.cpp.o" "gcc" "CMakeFiles/korsancim_server.dir/src/db/database.cpp.o.d"
   "/home/berkay/korsancim/backend/src/main.cpp" "CMakeFiles/korsancim_server.dir/src/main.cpp.o" "gcc" "CMakeFiles/korsancim_server.dir/src/main.cpp.o.d"
+  "/home/berkay/korsancim/backend/src/utils/logger.cpp" "CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o" "gcc" "CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o.d"
   "" "korsancim_server" "gcc" "CMakeFiles/korsancim_server.dir/link.d"
   )
 

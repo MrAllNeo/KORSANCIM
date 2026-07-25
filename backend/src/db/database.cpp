@@ -243,7 +243,7 @@ namespace Korsancim {
         return comments;
     }
 bool Database::get_user_by_username(const std::string& username, User& out_user) {
-    std::string sql = "SELECT id, username, role FROM users WHERE username = ?;";
+    std::string sql = "SELECT id, username, role, is_banned, ban_reason, created_at FROM users WHERE username = ?;";
     sqlite3_stmt* stmt;
 
     if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
@@ -256,8 +256,18 @@ bool Database::get_user_by_username(const std::string& username, User& out_user)
     if (sqlite3_step(stmt) == SQLITE_ROW) {
         out_user.id = sqlite3_column_int(stmt, 0);
         out_user.username = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        
         const unsigned char* role_ptr = sqlite3_column_text(stmt, 2);
         out_user.role = role_ptr ? reinterpret_cast<const char*>(role_ptr) : "user";
+        
+        out_user.is_banned = (sqlite3_column_int(stmt, 3) == 1);
+        
+        const unsigned char* reason_ptr = sqlite3_column_text(stmt, 4);
+        out_user.ban_reason = reason_ptr ? reinterpret_cast<const char*>(reason_ptr) : "";
+        
+        const unsigned char* date_ptr = sqlite3_column_text(stmt, 5);
+        out_user.created_at = date_ptr ? reinterpret_cast<const char*>(date_ptr) : "";
+
         found = true;
     }
 
@@ -277,5 +287,80 @@ bool Database::delete_topic(int topic_id) {
     sqlite3_finalize(stmt);
 
     return success;
+}
+bool Database::ban_user(int user_id, const std::string& reason) {
+    std::string sql = "UPDATE users SET is_banned = 1, ban_reason = ? WHERE id = ?;";
+    sqlite3_stmt* stmt;
+
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        return false;
+    }
+
+    sqlite3_bind_text(stmt, 1, reason.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 2, user_id);
+
+    bool success = (sqlite3_step(stmt) == SQLITE_DONE);
+    sqlite3_finalize(stmt);
+    return success;
+}
+
+bool Database::unban_user(int user_id) {
+    std::string sql = "UPDATE users SET is_banned = 0, ban_reason = '' WHERE id = ?;";
+    sqlite3_stmt* stmt;
+
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        return false;
+    }
+
+    sqlite3_bind_int(stmt, 1, user_id);
+    bool success = (sqlite3_step(stmt) == SQLITE_DONE);
+    sqlite3_finalize(stmt);
+    return success;
+}
+
+bool Database::update_user_role(int user_id, const std::string& new_role) {
+    std::string sql = "UPDATE users SET role = ? WHERE id = ?;";
+    sqlite3_stmt* stmt;
+
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        return false;
+    }
+
+    sqlite3_bind_text(stmt, 1, new_role.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 2, user_id);
+
+    bool success = (sqlite3_step(stmt) == SQLITE_DONE);
+    sqlite3_finalize(stmt);
+    return success;
+}
+
+std::vector<User> Database::get_all_users() {
+    std::vector<User> users;
+    std::string sql = "SELECT id, username, role, is_banned, ban_reason, created_at FROM users ORDER BY id ASC;";
+    sqlite3_stmt* stmt;
+
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            User u;
+            u.id = sqlite3_column_int(stmt, 0);
+            u.username = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+            
+            const unsigned char* role_ptr = sqlite3_column_text(stmt, 2);
+            u.role = role_ptr ? reinterpret_cast<const char*>(role_ptr) : "user";
+            
+            u.is_banned = (sqlite3_column_int(stmt, 3) == 1);
+            
+            const unsigned char* reason_ptr = sqlite3_column_text(stmt, 4);
+            u.ban_reason = reason_ptr ? reinterpret_cast<const char*>(reason_ptr) : "";
+            
+            const unsigned char* date_ptr = sqlite3_column_text(stmt, 5);
+            u.created_at = date_ptr ? reinterpret_cast<const char*>(date_ptr) : "";
+
+            users.push_back(u);
+        }
+    }
+
+    sqlite3_finalize(stmt);
+    return users;
 }
 }

@@ -203,6 +203,33 @@ src/main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_server.dir/build.make CMakeFiles/korsancim_server.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
 
+src/utils/logger.o: src/utils/logger.cpp.o
+.PHONY : src/utils/logger.o
+
+# target to build an object file
+src/utils/logger.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_server.dir/build.make CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_tests.dir/build.make CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o
+.PHONY : src/utils/logger.cpp.o
+
+src/utils/logger.i: src/utils/logger.cpp.i
+.PHONY : src/utils/logger.i
+
+# target to preprocess a source file
+src/utils/logger.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_server.dir/build.make CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_tests.dir/build.make CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.i
+.PHONY : src/utils/logger.cpp.i
+
+src/utils/logger.s: src/utils/logger.cpp.s
+.PHONY : src/utils/logger.s
+
+# target to generate assembly for a file
+src/utils/logger.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_server.dir/build.make CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_tests.dir/build.make CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.s
+.PHONY : src/utils/logger.cpp.s
+
 tests/unit_tests.o: tests/unit_tests.cpp.o
 .PHONY : tests/unit_tests.o
 
@@ -244,6 +271,9 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/utils/logger.o"
+	@echo "... src/utils/logger.i"
+	@echo "... src/utils/logger.s"
 	@echo "... tests/unit_tests.o"
 	@echo "... tests/unit_tests.i"
 	@echo "... tests/unit_tests.s"

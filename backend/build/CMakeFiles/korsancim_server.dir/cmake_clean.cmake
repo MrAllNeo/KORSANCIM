@@ -4,6 +4,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/korsancim_server.dir/src/db/database.cpp.o.d"
   "CMakeFiles/korsancim_server.dir/src/main.cpp.o"
   "CMakeFiles/korsancim_server.dir/src/main.cpp.o.d"
+  "CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o"
+  "CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o.d"
   "korsancim_server"
   "korsancim_server.pdb"
 )

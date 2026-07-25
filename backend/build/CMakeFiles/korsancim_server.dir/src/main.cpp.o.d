@@ -1678,4 +1678,6 @@ CMakeFiles/korsancim_server.dir/src/main.cpp.o: \
  /usr/include/c++/14/experimental/bits/lfts_config.h \
  /usr/include/openssl/param_build.h \
  /home/berkay/korsancim/backend/include/jwt-cpp/traits/kazuho-picojson/defaults.h \
- /home/berkay/korsancim/backend/include/jwt-cpp/traits/kazuho-picojson/traits.h
+ /home/berkay/korsancim/backend/include/jwt-cpp/traits/kazuho-picojson/traits.h \
+ /home/berkay/korsancim/backend/include/utils/logger.hpp \
+ /home/berkay/korsancim/backend/include/middleware/rate_limiter.hpp
