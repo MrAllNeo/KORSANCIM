@@ -27,31 +27,37 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 32,
+				"line" : 36,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 37,
+				"line" : 41,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 23,
+				"line" : 27,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 22,
+				"line" : 26,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 8,
 				"parent" : 0
 			},
 			{
 				"command" : 3,
 				"file" : 0,
-				"line" : 14,
+				"line" : 17,
 				"parent" : 0
 			}
 		]
@@ -62,7 +68,7 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "-std=gnu++17"
+					"fragment" : "-g -std=gnu++17"
 				}
 			],
 			"defines" : 
@@ -74,13 +80,21 @@
 				{
 					"backtrace" : 4,
 					"define" : "CROW_USE_BOOST=0"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "KORSANCIM_VERSION=\"1.1.0\""
 				}
 			],
 			"includes" : 
 			[
 				{
-					"backtrace" : 5,
+					"backtrace" : 6,
 					"path" : "/home/berkay/korsancim/backend/include"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "/home/berkay/korsancim/backend/src"
 				}
 			],
 			"language" : "CXX",
@@ -105,6 +119,10 @@
 	{
 		"commandFragments" : 
 		[
+			{
+				"fragment" : "-g",
+				"role" : "flags"
+			},
 			{
 				"fragment" : "",
 				"role" : "flags"

@@ -1,18 +1,22 @@
 cmake_minimum_required(VERSION 3.14)
-project(Korsancim)
+project(Korsancim VERSION 1.1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Bağımlılıklar
+# Derleme zamanı versiyon bilgisi
+add_definitions(-DKORSANCIM_VERSION="1.1.0")
+
+# ── Bağımlılıklar ────────────────────────────────────────────
 find_package(SQLite3 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(GTest REQUIRED)
 find_package(OpenSSL REQUIRED)
 
-# Header Dizinleri
+# ── Header Dizinleri ─────────────────────────────────────────
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src # src/config/app_config.hpp için
     ${SQLITE3_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIRS}
     ${OPENSSL_INCLUDE_DIR}
@@ -22,13 +26,13 @@ include_directories(
 add_definitions(-DCROW_USE_BOOST=0)
 add_definitions(-DASIO_STANDALONE)
 
-# Backend Kaynak Dosyaları (Tam Yollarla)
+# ── Backend Kaynak Dosyaları ─────────────────────────────────
 set(BACKEND_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/db/database.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/logger.cpp
 )
 
-# 1. SUNUCU EXECUTABLE (Main Server)
+# ── 1. Sunucu Executable ─────────────────────────────────────
 add_executable(korsancim_server
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
     ${BACKEND_SOURCES}
@@ -36,14 +40,13 @@ add_executable(korsancim_server
 
 target_link_libraries(korsancim_server
     PRIVATE
-    ${SQLITE3_LIBRARIES}
     SQLite::SQLite3
     Threads::Threads
     OpenSSL::SSL
     OpenSSL::Crypto
 )
 
-# 2. UNIT TEST EXECUTABLE
+# ── 2. Unit Test Executable ───────────────────────────────────
 enable_testing()
 
 add_executable(korsancim_tests
@@ -53,7 +56,6 @@ add_executable(korsancim_tests
 
 target_link_libraries(korsancim_tests
     PRIVATE
-    ${SQLITE3_LIBRARIES}
     SQLite::SQLite3
     Threads::Threads
     GTest::GTest

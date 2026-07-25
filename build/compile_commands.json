@@ -1,0 +1,38 @@
+[
+{
+  "directory": "/home/berkay/korsancim/build",
+  "command": "/usr/bin/g++ -DASIO_STANDALONE -DCROW_USE_BOOST=0 -DKORSANCIM_VERSION=\\\"1.1.0\\\" -I/home/berkay/korsancim/backend/include -I/home/berkay/korsancim/backend/src -g -std=gnu++17 -o CMakeFiles/korsancim_server.dir/src/main.cpp.o -c /home/berkay/korsancim/backend/src/main.cpp",
+  "file": "/home/berkay/korsancim/backend/src/main.cpp",
+  "output": "CMakeFiles/korsancim_server.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/berkay/korsancim/build",
+  "command": "/usr/bin/g++ -DASIO_STANDALONE -DCROW_USE_BOOST=0 -DKORSANCIM_VERSION=\\\"1.1.0\\\" -I/home/berkay/korsancim/backend/include -I/home/berkay/korsancim/backend/src -g -std=gnu++17 -o CMakeFiles/korsancim_server.dir/src/db/database.cpp.o -c /home/berkay/korsancim/backend/src/db/database.cpp",
+  "file": "/home/berkay/korsancim/backend/src/db/database.cpp",
+  "output": "CMakeFiles/korsancim_server.dir/src/db/database.cpp.o"
+},
+{
+  "directory": "/home/berkay/korsancim/build",
+  "command": "/usr/bin/g++ -DASIO_STANDALONE -DCROW_USE_BOOST=0 -DKORSANCIM_VERSION=\\\"1.1.0\\\" -I/home/berkay/korsancim/backend/include -I/home/berkay/korsancim/backend/src -g -std=gnu++17 -o CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o -c /home/berkay/korsancim/backend/src/utils/logger.cpp",
+  "file": "/home/berkay/korsancim/backend/src/utils/logger.cpp",
+  "output": "CMakeFiles/korsancim_server.dir/src/utils/logger.cpp.o"
+},
+{
+  "directory": "/home/berkay/korsancim/build",
+  "command": "/usr/bin/g++ -DASIO_STANDALONE -DCROW_USE_BOOST=0 -DKORSANCIM_VERSION=\\\"1.1.0\\\" -I/home/berkay/korsancim/backend/include -I/home/berkay/korsancim/backend/src -g -std=gnu++17 -DGTEST_HAS_PTHREAD=1 -o CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o -c /home/berkay/korsancim/backend/tests/unit_tests.cpp",
+  "file": "/home/berkay/korsancim/backend/tests/unit_tests.cpp",
+  "output": "CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o"
+},
+{
+  "directory": "/home/berkay/korsancim/build",
+  "command": "/usr/bin/g++ -DASIO_STANDALONE -DCROW_USE_BOOST=0 -DKORSANCIM_VERSION=\\\"1.1.0\\\" -I/home/berkay/korsancim/backend/include -I/home/berkay/korsancim/backend/src -g -std=gnu++17 -DGTEST_HAS_PTHREAD=1 -o CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o -c /home/berkay/korsancim/backend/src/db/database.cpp",
+  "file": "/home/berkay/korsancim/backend/src/db/database.cpp",
+  "output": "CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o"
+},
+{
+  "directory": "/home/berkay/korsancim/build",
+  "command": "/usr/bin/g++ -DASIO_STANDALONE -DCROW_USE_BOOST=0 -DKORSANCIM_VERSION=\\\"1.1.0\\\" -I/home/berkay/korsancim/backend/include -I/home/berkay/korsancim/backend/src -g -std=gnu++17 -DGTEST_HAS_PTHREAD=1 -o CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o -c /home/berkay/korsancim/backend/src/utils/logger.cpp",
+  "file": "/home/berkay/korsancim/backend/src/utils/logger.cpp",
+  "output": "CMakeFiles/korsancim_tests.dir/src/utils/logger.cpp.o"
+}
+]

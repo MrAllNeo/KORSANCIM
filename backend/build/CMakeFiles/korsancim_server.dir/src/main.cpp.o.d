@@ -110,6 +110,7 @@ CMakeFiles/korsancim_server.dir/src/main.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/atomic_wide_counter.h \
  /usr/include/x86_64-linux-gnu/bits/struct_mutex.h \
  /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h /usr/include/alloca.h \
+ /usr/include/x86_64-linux-gnu/bits/stdlib-bsearch.h \
  /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
  /usr/include/c++/14/bits/std_abs.h /usr/include/c++/14/cstdio \
  /usr/include/stdio.h /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h \
@@ -117,10 +118,10 @@ CMakeFiles/korsancim_server.dir/src/main.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h \
  /usr/include/x86_64-linux-gnu/bits/types/cookie_io_functions_t.h \
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
- /usr/include/c++/14/cerrno /usr/include/errno.h \
- /usr/include/x86_64-linux-gnu/bits/errno.h /usr/include/linux/errno.h \
- /usr/lib/linux/uapi/x86/asm/errno.h /usr/include/asm-generic/errno.h \
- /usr/include/asm-generic/errno-base.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio.h /usr/include/c++/14/cerrno \
+ /usr/include/errno.h /usr/include/x86_64-linux-gnu/bits/errno.h \
+ /usr/include/linux/errno.h /usr/lib/linux/uapi/x86/asm/errno.h \
+ /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
  /usr/include/x86_64-linux-gnu/bits/types/error_t.h \
  /usr/include/c++/14/bits/charconv.h \
  /usr/include/c++/14/bits/basic_string.tcc \
@@ -1630,6 +1631,11 @@ CMakeFiles/korsancim_server.dir/src/main.cpp.o: \
  /usr/include/c++/14/thread /usr/include/c++/14/bits/this_thread_sleep.h \
  /home/berkay/korsancim/backend/include/db/database.hpp \
  /usr/include/sqlite3.h \
+ /home/berkay/korsancim/backend/include/middleware/rate_limiter.hpp \
+ /home/berkay/korsancim/backend/include/utils/logger.hpp \
+ /home/berkay/korsancim/backend/src/config/app_config.hpp \
+ /home/berkay/korsancim/backend/include/api/auth_routes.hpp \
+ /home/berkay/korsancim/backend/include/middleware/auth_middleware.hpp \
  /home/berkay/korsancim/backend/include/utils/jwt_helper.hpp \
  /home/berkay/korsancim/backend/include/jwt-cpp/jwt.h \
  /home/berkay/korsancim/backend/include/picojson/picojson.h \
@@ -1679,5 +1685,9 @@ CMakeFiles/korsancim_server.dir/src/main.cpp.o: \
  /usr/include/openssl/param_build.h \
  /home/berkay/korsancim/backend/include/jwt-cpp/traits/kazuho-picojson/defaults.h \
  /home/berkay/korsancim/backend/include/jwt-cpp/traits/kazuho-picojson/traits.h \
- /home/berkay/korsancim/backend/include/utils/logger.hpp \
- /home/berkay/korsancim/backend/include/middleware/rate_limiter.hpp
+ /home/berkay/korsancim/backend/include/utils/token_blacklist.hpp \
+ /usr/include/c++/14/unordered_set \
+ /usr/include/c++/14/bits/unordered_set.h \
+ /home/berkay/korsancim/backend/include/api/topic_routes.hpp \
+ /home/berkay/korsancim/backend/include/api/comment_routes.hpp \
+ /home/berkay/korsancim/backend/include/api/admin_routes.hpp

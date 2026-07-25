@@ -6,7 +6,7 @@
 			[
 				{
 					"build" : ".",
-					"jsonFile" : "directory-.-f5ebdc15457944623624.json",
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
 					"minimumCMakeVersion" : 
 					{
 						"string" : "3.14"
@@ -20,7 +20,7 @@
 					]
 				}
 			],
-			"name" : "",
+			"name" : "Debug",
 			"projects" : 
 			[
 				{
@@ -41,14 +41,14 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "korsancim_server::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-korsancim_server-72044a742cc443355218.json",
+					"jsonFile" : "target-korsancim_server-Debug-8a9b90fa1186a507e133.json",
 					"name" : "korsancim_server",
 					"projectIndex" : 0
 				},
 				{
 					"directoryIndex" : 0,
 					"id" : "korsancim_tests::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-korsancim_tests-66b8ef9479ec6ad9538e.json",
+					"jsonFile" : "target-korsancim_tests-Debug-30dcae6941e45763609d.json",
 					"name" : "korsancim_tests",
 					"projectIndex" : 0
 				}
