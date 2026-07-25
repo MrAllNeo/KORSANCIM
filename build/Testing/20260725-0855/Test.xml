@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Site BuildName="(empty)"
+	BuildStamp="20260725-0855-Experimental"
+	Name="(empty)"
+	Generator="ctest-3.31.6"
+	CompilerName=""
+	CompilerVersion=""
+	OSName="Linux"
+	Hostname="Berkay"
+	OSRelease="6.12.96+deb13-amd64"
+	OSVersion="#1 SMP PREEMPT_DYNAMIC Debian 6.12.96-1 (2026-07-20)"
+	OSPlatform="x86_64"
+	Is64Bits="1"
+	VendorString="GenuineIntel"
+	VendorID="Intel Corporation"
+	FamilyID="6"
+	ModelID="76"
+	ModelName="Intel(R) Pentium(R) CPU  N3710  @ 1.60GHz"
+	ProcessorCacheSize="1024"
+	NumberOfLogicalCPU="4"
+	NumberOfPhysicalCPU="4"
+	TotalVirtualMemory="8090"
+	TotalPhysicalMemory="7848"
+	LogicalProcessorsPerPhysical="1"
+	ProcessorClockFrequency="2560"
+	>
+	<Testing>
+		<StartDateTime>Jul 25 12:22 +03</StartDateTime>
+		<StartTestTime>1784971340</StartTestTime>
+		<TestList/>
+		<EndDateTime>Jul 25 12:22 +03</EndDateTime>
+		<EndTestTime>1784971340</EndTestTime>
+		<ElapsedMinutes>0</ElapsedMinutes>
+	</Testing>
+</Site>

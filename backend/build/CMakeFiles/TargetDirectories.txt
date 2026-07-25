@@ -1,3 +1,5 @@
 /home/berkay/korsancim/backend/build/CMakeFiles/korsancim_server.dir
+/home/berkay/korsancim/backend/build/CMakeFiles/korsancim_tests.dir
+/home/berkay/korsancim/backend/build/CMakeFiles/test.dir
 /home/berkay/korsancim/backend/build/CMakeFiles/edit_cache.dir
 /home/berkay/korsancim/backend/build/CMakeFiles/rebuild_cache.dir

@@ -2,7 +2,11 @@
 #include "db/database.hpp"
 #include "utils/jwt_helper.hpp"
 #include <iostream>
-
+#define ASIO_STANDALONE
+#include "crow.h"
+#include "db/database.hpp"
+#include "utils/jwt_helper.hpp"
+#include <iostream>
 int main() {
     crow::SimpleApp app;
     Korsancim::Database db("korsancim.db");
@@ -17,6 +21,10 @@ int main() {
     db.execute("CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, slug TEXT UNIQUE);");
     db.execute("CREATE TABLE IF NOT EXISTS topics (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER, user_id INTEGER, title TEXT, content TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);");
     db.execute("CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, topic_id INTEGER, user_id INTEGER, content TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);");
+
+    // Varsayılan Kategorileri Ekle (Boşsa)
+    db.execute("INSERT OR IGNORE INTO categories (id, name, description, slug) VALUES (1, 'Genel Sohbet', 'Gereksiz sohbetlerin ve muhabbetin adresi', 'genel-sohbet');");
+    db.execute("INSERT OR IGNORE INTO categories (id, name, description, slug) VALUES (2, 'Yazılım & Teknoloji', 'C++, Linux, Python ve kodlama dunyasi', 'yazilim-teknoloji');");
 
     // 1. KULLANICI KAYIT (REGISTER)
     CROW_ROUTE(app, "/api/auth/register").methods(crow::HTTPMethod::POST)([&db](const crow::request& req) {
@@ -35,7 +43,7 @@ int main() {
         }
     });
 
-    // 2. KULLANICI GİRİŞ (LOGIN - JWT TOKEN DÖNER)
+    // 2. KULLANICI GİRİŞ (LOGIN - DB'den Gerçek ID ve Rol ile JWT Üretir)
     CROW_ROUTE(app, "/api/auth/login").methods(crow::HTTPMethod::POST)([&db](const crow::request& req) {
         auto body = crow::json::load(req.body);
         if (!body || !body.has("username") || !body.has("password")) {
@@ -46,16 +54,19 @@ int main() {
         std::string password = body["password"].s();
 
         if (db.authenticate_user(username, password)) {
-            // Şimdilik varsayılan user_id: 1 ve role: user iletiyoruz (İleride DB'den ID çekilecek)
-            std::string token = Korsancim::JwtHelper::generate_token(1, username, "user");
+            Korsancim::User user_info;
+            if (db.get_user_by_username(username, user_info)) {
+                std::string token = Korsancim::JwtHelper::generate_token(user_info.id, user_info.username, user_info.role);
 
-            crow::json::wvalue res;
-            res["message"] = "Giriş başarılı!";
-            res["token"] = token;
-            return crow::response(200, res);
-        } else {
-            return crow::response(401, "{\"error\": \"Kullanıcı adı veya şifre hatalı!\"}");
+                crow::json::wvalue res;
+                res["message"] = "Giriş başarılı!";
+                res["token"] = token;
+                res["role"] = user_info.role;
+                return crow::response(200, res);
+            }
         }
+        
+        return crow::response(401, "{\"error\": \"Kullanıcı adı veya şifre hatalı!\"}");
     });
 
     // 3. KATEGORİLERİ GETİR (HERKESE AÇIK)
@@ -178,6 +189,33 @@ int main() {
             res[i]["created_at"] = comments[i].created_at;
         }
         return crow::response(200, res);
+    });
+
+    // 8. ADMIN: KONU SİLME (SADECE ADMIN / MODERATOR ROLÜ YAPABİLİR)
+    CROW_ROUTE(app, "/api/admin/topics/<int>").methods(crow::HTTPMethod::DELETE)([&db](const crow::request& req, int topic_id) {
+        auto auth_header = req.get_header_value("Authorization");
+        if (auth_header.empty() || auth_header.substr(0, 7) != "Bearer ") {
+            return crow::response(401, "{\"error\": \"Yetkisiz erişim! Token gerekli.\"}");
+        }
+
+        std::string token = auth_header.substr(7);
+        int user_id = 0;
+        std::string username, role;
+
+        if (!Korsancim::JwtHelper::verify_token(token, user_id, username, role)) {
+            return crow::response(401, "{\"error\": \"Geçersiz token!\"}");
+        }
+
+        // Yetki Kontrolü: Yalnızca admin veya moderator silebilir!
+        if (role != "admin" && role != "moderator") {
+            return crow::response(403, "{\"error\": \"Bu işlem için yetkiniz yok! (Admin / Moderator gereklidir)\"}");
+        }
+
+        if (db.delete_topic(topic_id)) {
+            return crow::response(200, "{\"message\": \"Konu başarıyla silindi.\"}");
+        }
+
+        return crow::response(500, "{\"error\": \"Konu silinirken bir hata oluştu.\"}");
     });
 
     std::cout << "🚀 KORSANCIM Backend Sunucusu 8080 Portunda Çalışıyor..." << std::endl;

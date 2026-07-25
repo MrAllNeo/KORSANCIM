@@ -9,9 +9,7 @@ namespace Korsancim {
 struct User {
     int id;
     std::string username;
-    std::string password_hash;
-    std::string role; // 'user' veya 'admin'
-    std::string created_at;
+    std::string role;
 };
 
 } // namespace Korsancim

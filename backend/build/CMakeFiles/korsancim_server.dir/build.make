@@ -112,6 +112,9 @@ korsancim_server: CMakeFiles/korsancim_server.dir/src/main.cpp.o
 korsancim_server: CMakeFiles/korsancim_server.dir/src/db/database.cpp.o
 korsancim_server: CMakeFiles/korsancim_server.dir/build.make
 korsancim_server: CMakeFiles/korsancim_server.dir/compiler_depend.ts
+korsancim_server: /usr/lib/x86_64-linux-gnu/libsqlite3.so
+korsancim_server: /usr/lib/x86_64-linux-gnu/libssl.so
+korsancim_server: /usr/lib/x86_64-linux-gnu/libcrypto.so
 korsancim_server: CMakeFiles/korsancim_server.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/berkay/korsancim/backend/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable korsancim_server"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/korsancim_server.dir/link.txt --verbose=$(VERBOSE)

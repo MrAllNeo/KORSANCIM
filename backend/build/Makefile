@@ -65,6 +65,16 @@ CMAKE_BINARY_DIR = /home/berkay/korsancim/backend/build
 #=============================================================================
 # Targets provided globally by CMake.
 
+# Special rule for the target test
+test:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Running tests..."
+	/usr/bin/ctest --force-new-ctest-process $(ARGS)
+.PHONY : test
+
+# Special rule for the target test
+test/fast: test
+.PHONY : test/fast
+
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "No interactive CMake dialog available..."
@@ -129,12 +139,26 @@ korsancim_server/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_server.dir/build.make CMakeFiles/korsancim_server.dir/build
 .PHONY : korsancim_server/fast
 
+#=============================================================================
+# Target rules for targets named korsancim_tests
+
+# Build rule for target.
+korsancim_tests: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 korsancim_tests
+.PHONY : korsancim_tests
+
+# fast build rule for target.
+korsancim_tests/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_tests.dir/build.make CMakeFiles/korsancim_tests.dir/build
+.PHONY : korsancim_tests/fast
+
 src/db/database.o: src/db/database.cpp.o
 .PHONY : src/db/database.o
 
 # target to build an object file
 src/db/database.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_server.dir/build.make CMakeFiles/korsancim_server.dir/src/db/database.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_tests.dir/build.make CMakeFiles/korsancim_tests.dir/src/db/database.cpp.o
 .PHONY : src/db/database.cpp.o
 
 src/db/database.i: src/db/database.cpp.i
@@ -143,6 +167,7 @@ src/db/database.i: src/db/database.cpp.i
 # target to preprocess a source file
 src/db/database.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_server.dir/build.make CMakeFiles/korsancim_server.dir/src/db/database.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_tests.dir/build.make CMakeFiles/korsancim_tests.dir/src/db/database.cpp.i
 .PHONY : src/db/database.cpp.i
 
 src/db/database.s: src/db/database.cpp.s
@@ -151,6 +176,7 @@ src/db/database.s: src/db/database.cpp.s
 # target to generate assembly for a file
 src/db/database.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_server.dir/build.make CMakeFiles/korsancim_server.dir/src/db/database.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_tests.dir/build.make CMakeFiles/korsancim_tests.dir/src/db/database.cpp.s
 .PHONY : src/db/database.cpp.s
 
 src/main.o: src/main.cpp.o
@@ -177,6 +203,30 @@ src/main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_server.dir/build.make CMakeFiles/korsancim_server.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
 
+tests/unit_tests.o: tests/unit_tests.cpp.o
+.PHONY : tests/unit_tests.o
+
+# target to build an object file
+tests/unit_tests.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_tests.dir/build.make CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.o
+.PHONY : tests/unit_tests.cpp.o
+
+tests/unit_tests.i: tests/unit_tests.cpp.i
+.PHONY : tests/unit_tests.i
+
+# target to preprocess a source file
+tests/unit_tests.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_tests.dir/build.make CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.i
+.PHONY : tests/unit_tests.cpp.i
+
+tests/unit_tests.s: tests/unit_tests.cpp.s
+.PHONY : tests/unit_tests.s
+
+# target to generate assembly for a file
+tests/unit_tests.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/korsancim_tests.dir/build.make CMakeFiles/korsancim_tests.dir/tests/unit_tests.cpp.s
+.PHONY : tests/unit_tests.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -185,13 +235,18 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... test"
 	@echo "... korsancim_server"
+	@echo "... korsancim_tests"
 	@echo "... src/db/database.o"
 	@echo "... src/db/database.i"
 	@echo "... src/db/database.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... tests/unit_tests.o"
+	@echo "... tests/unit_tests.i"
+	@echo "... tests/unit_tests.s"
 .PHONY : help
 
 

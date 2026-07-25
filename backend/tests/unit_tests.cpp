@@ -2,6 +2,7 @@
 #include "db/database.hpp"
 #include <fstream>
 #include "utils/jwt_helper.hpp"
+#include "utils/hash_helper.hpp"
 // Test için geçici bir test veritabanı oluşturan fixture
 class DatabaseTest : public ::testing::Test {
 protected:
@@ -72,4 +73,23 @@ TEST(JwtTest, GenerateAndVerifyToken) {
     std::string fake_token = token + "bozuk_kısım";
     bool is_fake_valid = Korsancim::JwtHelper::verify_token(fake_token, verified_id, verified_username, verified_role);
     EXPECT_FALSE(is_fake_valid);
+}
+// TEST 5: Password Hashing ve Doğrulama Testi
+TEST(HashTest, PasswordHashingAndVerification) {
+    std::string raw_password = "Korsan_Sifre_2026!";
+    
+    // 1. Şifreyi Hash'le (Salt otomatik üretilir)
+    std::string salt = Korsancim::HashHelper::generate_salt();
+    std::string hashed_password = Korsancim::HashHelper::hash_password(raw_password, salt);
+    
+    EXPECT_NE(raw_password, hashed_password);
+    EXPECT_FALSE(hashed_password.empty());
+
+    // 2. Doğru şifre ile doğrulama yap
+    bool is_correct = Korsancim::HashHelper::verify_password(raw_password, hashed_password);
+    EXPECT_TRUE(is_correct);
+
+    // 3. Yanlış şifre ile doğrulama dene
+    bool is_wrong = Korsancim::HashHelper::verify_password("Yanlis_Sifre_123", hashed_password);
+    EXPECT_FALSE(is_wrong);
 }

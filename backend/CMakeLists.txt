@@ -4,7 +4,7 @@ project(Korsancim)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Bağımlılıklar (SQLite3, Threads, GTest, OpenSSL)
+# Bağımlılıklar
 find_package(SQLite3 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(GTest REQUIRED)
@@ -18,12 +18,16 @@ include_directories(
     ${OPENSSL_INCLUDE_DIR}
 )
 
+# Crow & Standalone Asio Tanımlamaları
+add_definitions(-DCROW_USE_BOOST=0)
+add_definitions(-DASIO_STANDALONE)
+
 # Backend Kaynak Dosyaları
 set(BACKEND_SOURCES
     src/db/database.cpp
 )
 
-# 1. SUNUCU EXECUTABLE (Main Server)
+# 1. SUNUCU EXECUTABLE
 add_executable(korsancim_server
     src/main.cpp
     ${BACKEND_SOURCES}
