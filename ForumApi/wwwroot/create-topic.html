@@ -5,12 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yeni Konu — KORSANCIM</title>
-    <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%236366f1'/><text x='16' y='23' font-family='system-ui,sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'>K</text></svg>">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="js/theme.js"></script>
+    <link rel="icon" type="image/svg+xml" href="static/favicon.svg">
+    <link rel="stylesheet" href="css/tailwind.css">
     <link rel="stylesheet" href="css/app.css">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://unpkg.com/highlight.js@11/styles/atom-one-dark.min.css">
+    <script src="https://unpkg.com/highlight.js@11"></script>
     <script src="js/app.js"></script>
 </head>
 
@@ -51,8 +51,34 @@
                         <label class="label mb-0" for="topic-content">İçerik</label>
                         <span id="content-counter" class="hint ml-auto"></span>
                     </div>
+
+                    <div class="flex items-center gap-1 mb-2">
+                        <button type="button" onclick="wrapSelection('**')" class="btn btn-quiet btn-sm" title="Kalın">
+                            <i data-lucide="bold" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button type="button" onclick="wrapSelection('*')" class="btn btn-quiet btn-sm" title="İtalik">
+                            <i data-lucide="italic" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button type="button" onclick="wrapSelection('`')" class="btn btn-quiet btn-sm"
+                            title="Satır içi kod">
+                            <i data-lucide="code" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button type="button" onclick="wrapCodeBlock()" class="btn btn-quiet btn-sm" title="Kod bloğu">
+                            <i data-lucide="square-code" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <div class="ml-auto flex gap-1 p-0.5 rounded-lg bg-sunken border border-line">
+                            <button type="button" id="tab-write" onclick="switchContentTab('write')"
+                                class="tab" aria-selected="true">Yaz</button>
+                            <button type="button" id="tab-preview" onclick="switchContentTab('preview')"
+                                class="tab" aria-selected="false">Önizle</button>
+                        </div>
+                    </div>
+
                     <textarea id="topic-content" rows="9" required maxlength="20000" class="input"
-                        placeholder="Detayları buraya yaz…"></textarea>
+                        placeholder="Detayları buraya yaz… **kalın**, *italik*, `satır içi kod`, ```kod bloğu```"></textarea>
+                    <div id="content-preview" class="hidden card p-4 min-h-[160px] rich-content"></div>
+                    <p class="hint mt-1.5">Kod paylaşırken üç ters tırnak (```) ile aç/kapat — otomatik
+                        renklendirilir.</p>
                 </div>
 
                 <div>
@@ -97,6 +123,57 @@
     </footer>
 
     <script>
+        // Seçili metni işaretleyici karakterlerle sarar (kalın/italik/kod).
+        // Aynı karakter olmadığı için kod bloğunda ayrı bir fonksiyon var.
+        function wrapSelection(marker) {
+            const textarea = document.getElementById('topic-content');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const value = textarea.value;
+            const selected = value.slice(start, end) || 'metin';
+
+            textarea.value = value.slice(0, start) + marker + selected + marker + value.slice(end);
+            textarea.focus();
+            textarea.selectionStart = start + marker.length;
+            textarea.selectionEnd = start + marker.length + selected.length;
+            textarea.dispatchEvent(new Event('input'));
+        }
+
+        function wrapCodeBlock() {
+            const textarea = document.getElementById('topic-content');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const value = textarea.value;
+            const selected = value.slice(start, end) || 'kod buraya';
+
+            const needsLeadingNewline = start > 0 && value[start - 1] !== '\n';
+            const prefix = (needsLeadingNewline ? '\n' : '') + '```\n';
+            const suffix = '\n```\n';
+
+            textarea.value = value.slice(0, start) + prefix + selected + suffix + value.slice(end);
+            textarea.focus();
+            const selStart = start + prefix.length;
+            textarea.selectionStart = selStart;
+            textarea.selectionEnd = selStart + selected.length;
+            textarea.dispatchEvent(new Event('input'));
+        }
+
+        function switchContentTab(tab) {
+            const isWrite = tab === 'write';
+            document.getElementById('topic-content').classList.toggle('hidden', !isWrite);
+            document.getElementById('content-preview').classList.toggle('hidden', isWrite);
+            document.getElementById('tab-write').setAttribute('aria-selected', isWrite);
+            document.getElementById('tab-preview').setAttribute('aria-selected', !isWrite);
+
+            if (!isWrite) {
+                const raw = document.getElementById('topic-content').value.trim();
+                document.getElementById('content-preview').innerHTML = raw
+                    ? renderRichContent(raw)
+                    : '<p class="hint">Önizlemek için önce bir şeyler yaz.</p>';
+                highlightCodeBlocks();
+            }
+        }
+
         const MAX_FILES = 5;
         const MAX_BYTES = 5 * 1024 * 1024;
         let selectedFiles = [];

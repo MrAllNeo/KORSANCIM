@@ -58,6 +58,13 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+// Testler aynı TestServer'ı (tek "IP") paylaşan onlarca hesap oluşturuyor;
+// prod'daki düşük eşikli limitler orada gerçek bir hatayı değil, test
+// altyapısının kendisini yakalar. Bu yüzden test ortamında devre dışı.
+var enableRateLimiting = !builder.Environment.IsEnvironment("Testing");
+
+if (enableRateLimiting)
+{
 // ── Rate Limiting ────────────────────────────────────────────
 // Bölümleme IP bazlı. Ters vekil (nginx vb.) arkasına konursa
 // ForwardedHeaders eklenmeli, yoksa tüm istekler tek IP'den görünür.
@@ -110,6 +117,7 @@ builder.Services.AddRateLimiter(options =>
             ? "user:" + context.User.Identity.Name
             : "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "bilinmiyor");
 });
+}
 
 builder.Services.AddControllers();
 
@@ -167,11 +175,46 @@ app.UseStatusCodePages(async context =>
 app.UseCors("AllowAll");
 app.UseAuthentication();
 
+// Token geçerliliğini kaybetmeden banlanan kullanıcıyı hemen durdurur — aksi
+// halde ban, mevcut token 12 saat dolana kadar etkisiz kalırdı.
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        var idClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (idClaim != null && int.TryParse(idClaim, out var userId))
+        {
+            var db = context.RequestServices.GetRequiredService<AppDbContext>();
+            var banned = await db.Users
+                .Where(u => u.Id == userId)
+                .Select(u => u.IsBanned)
+                .FirstOrDefaultAsync();
+
+            if (banned)
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsJsonAsync(new { error = "Hesabınız askıya alınmış." });
+                return;
+            }
+        }
+    }
+
+    await next();
+});
+
 // Statik dosyalardan sonra: sayfa/görsel istekleri sayaca girmesin,
 // kimlik doğrulamadan sonra: bölümleme kullanıcı adını görebilsin.
-app.UseRateLimiter();
+if (enableRateLimiting)
+{
+    app.UseRateLimiter();
+}
 
 app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Test projesinin WebApplicationFactory<Program> ile erişebilmesi için
+// (top-level statement'lar varsayılan olarak internal bir sınıf üretir).
+public partial class Program { }

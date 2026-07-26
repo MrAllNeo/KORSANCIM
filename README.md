@@ -10,11 +10,13 @@ ForumApi/
 ├── Models/          Topic, Comment, User, Category, TopicLike, CommentLike
 ├── Data/            AppDbContext (EF Core)
 ├── Migrations/      EF Core migration'ları
+├── tailwind.config.js  Tailwind renk/font token'ları (derleme zamanında okunur)
+├── tailwind-input.css  Tailwind derlemesinin kaynak dosyası
 └── wwwroot/         Arayüz (index, auth, create-topic, topic-detail, profile)
-    ├── css/app.css  Tasarım sistemi (renk, kart, buton, rozet)
-    ├── js/theme.js   Tailwind renk token'ları
-    ├── js/app.js     Ortak yardımcılar: header, oturum, XSS kaçışı, rozetler
-    └── uploads/      Kullanıcı yüklemeleri (git'e dahil değil)
+    ├── css/app.css       Tasarım sistemi (renk, kart, buton, rozet)
+    ├── css/tailwind.css  Derlenmiş Tailwind çıktısı (git'e dahil, elle düzenlenmez)
+    ├── js/app.js         Ortak yardımcılar: header, oturum, XSS kaçışı, rozetler
+    └── uploads/          Kullanıcı yüklemeleri (git'e dahil değil)
 ```
 
 Arayüz "sakin derinlik" temasını kullanır: düz koyu yüzeyler, ayrımı kenarlık
@@ -36,6 +38,24 @@ scripts/dev-server.sh restart   # start | stop | restart
 `pkill` yanıltıcı olabiliyor; script portu yoklayarak doğruluyor.)
 
 Varsayılan adres: http://localhost:5085 — kök URL `wwwroot/index.html`'i açar.
+
+### CSS (Tailwind)
+
+Tailwind, CDN üzerinden değil yerel olarak derlenir — `wwwroot/css/tailwind.css`
+git'e dahildir, `dotnet run` bu dosyayı olduğu gibi statik servis eder;
+**çalışma zamanında Node gerekmez.** Node yalnızca stil/`tailwind.config.js`
+değiştiğinde, geliştirme sırasında gerekir:
+
+```bash
+cd ForumApi
+npm install        # ilk kurulumda bir kez
+npm run build:css  # HTML/JS'teki class'ları tarar, tailwind.css'i yeniden üretir
+npm run watch:css  # geliştirirken dosya değişikliklerini izler
+```
+
+`tailwind.config.js`'teki renkler `wwwroot/css/app.css`'teki `:root` custom
+property'leriyle birebir aynı tutulmalı — biri değişirse diğeri elle
+güncellenmeli.
 
 ### JWT imzalama anahtarı
 
@@ -79,6 +99,23 @@ Konu listesi varsayılan 20, en fazla 50 kayıt döner; yanıt
 | GET | `/api/search?q=&limit=` | Konu, yanıt ve kullanıcılarda arama |
 | GET | `/api/categories` | Kategori listesi + kategori başına konu sayısı |
 | GET | `/api/comments/topic/{id}/likes` 🔒 | Bu konuda beğendiğim yanıtların id'leri |
+
+### Yönetim uçları (rol gerektirir)
+
+⚙️ = `Admin` veya `Moderator` rolü gerektirir. ⚙️👑 = yalnızca `Admin`.
+
+| Metot | Yol | Açıklama |
+|---|---|---|
+| GET | `/api/admin/users?search=&page=&pageSize=` ⚙️ | Kullanıcı listesi (rol/ban durumu dahil) |
+| POST | `/api/admin/users/{id}/ban` ⚙️ | Kullanıcıyı banla (`{ reason }`) — Admin banlanamaz, kendine uygulanamaz |
+| POST | `/api/admin/users/{id}/unban` ⚙️ | Banı kaldır |
+| PUT | `/api/admin/users/{id}/role` ⚙️👑 | Rol ata: `User` / `Moderator` / `Admin` |
+| DELETE | `/api/admin/topics/{id}` ⚙️ | Konuyu sahiplikten bağımsız sil (moderasyon) |
+| DELETE | `/api/admin/comments/{id}` ⚙️ | Yorumu sahiplikten bağımsız sil (moderasyon) |
+
+İlk admin, veritabanı migration'ında `CREATOR` kullanıcı adına otomatik atanır;
+sonrasında rol yükseltmesi yalnızca mevcut bir Admin üzerinden yapılabilir
+(kendini yükseltme/self-servis rol atama yok).
 
 Arama terimi en az 2 karakter olmalı, `limit` en fazla 50. Yanıt gövdesi
 `{ query, topics, comments, users, totals }` şeklinde gruplanmış döner.
@@ -128,10 +165,32 @@ dotnet ef migrations add DegisiklikAdi --project ForumApi
   genel 120 istek/dk, giriş-kayıt 8 istek/5dk, yazma işlemleri 30 istek/dk.
   Aşıldığında `429` + `Retry-After` döner. Statik dosyalar sayaca dahil değildir.
   **Ters vekil arkasına konursa** `ForwardedHeaders` eklenmeli, yoksa tüm
-  istekler tek IP'den geliyormuş gibi görünür.
+  istekler tek IP'den geliyormuş gibi görünür. Test ortamında
+  (`ASPNETCORE_ENVIRONMENT=Testing`) devre dışı bırakılır.
+- Rol sistemi (`User` / `Moderator` / `Admin`) ve ban (`IsBanned`, `BanReason`)
+  veritabanında tutulur, rol JWT'ye claim olarak gömülür. Banlanan kullanıcı
+  hem girişte hem de **mevcut token'ıyla** anında reddedilir — ban, token'ın
+  12 saatlik ömrü dolana kadar beklemez (bkz. `Program.cs` içindeki
+  kimlik doğrulama sonrası middleware).
+- Admin rolündeki bir hesap banlanamaz (kilitlenme riskine karşı); kimse
+  kendini banlayamaz veya kendi rolünü değiştiremez.
 
-Henüz yapılmadı: e-posta doğrulama, rol/moderasyon sistemi, token iptali
-(logout sunucuda değil yalnızca istemcide), otomatik test.
+Henüz yapılmadı: e-posta doğrulama, admin paneli arayüzü (uçlar hazır, arayüz
+yok), token iptali (logout sunucuda değil yalnızca istemcide).
+
+## Testler
+
+```bash
+dotnet test ForumApi.Tests/ForumApi.Tests.csproj
+```
+
+`ForumApi.Tests`, `WebApplicationFactory<Program>` ile her test sınıfı için
+izole, bellek-içi bir SQLite veritabanı kurar (gerçek `forum.db`'ye dokunmaz).
+Kapsam: kayıt/giriş, sahiplik (başkasının konusunu/yorumunu düzenleyememe),
+beğeni toggle'ı ve unique index, arama (konu/yorum/kullanıcı), dosya yükleme
+doğrulaması (uzantı/boyut/içerik türü uyuşmazlığı, `.svg` reddi), rol/ban
+(yetkisiz erişim, ban→giriş reddi, ban→mevcut token reddi, moderatörün rol
+değiştirememesi, Admin'in banlanamaması).
 
 ## Geçmiş
 

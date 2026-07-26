@@ -4,6 +4,10 @@ obj/
 *.user
 *.suo
 
+# Tailwind derleme araçları (yerel geliştirme) — üretilen
+# wwwroot/css/tailwind.css commit'e dahildir, node_modules/ değildir.
+node_modules/
+
 # SQLite veritabanı (yerel geliştirme verisi)
 *.db
 *.db-shm

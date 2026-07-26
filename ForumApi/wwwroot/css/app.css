@@ -357,6 +357,40 @@ textarea.input {
     font-weight: 600;
 }
 
+/* Zengin içerik: satır içi kod ve kod bloğu (bkz. renderRichContent) */
+.inline-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .85em;
+    background: var(--sunken);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: .1em .4em;
+    color: var(--accent-soft);
+}
+
+.code-block {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: .6rem 0;
+}
+
+.code-block code {
+    display: block;
+    overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: .9rem 1rem;
+    background: var(--sunken);
+    color: var(--ink-soft);
+}
+
+/* Zengin içerik paragrafları arasına boşluk (renderRichContent <p> üretir) */
+.rich-content p + p {
+    margin-top: .75rem;
+}
+
 /* Arama sonucu vurgusu */
 .search-hit {
     background: rgba(99, 102, 241, .3);

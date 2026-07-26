@@ -36,6 +36,62 @@ function highlight(value, query) {
     return safe.replace(new RegExp(safeTerm, 'gi'), m => `<mark class="search-hit">${m}</mark>`);
 }
 
+// ── Zengin içerik (kod farkında hafif işaretleme) ───────────
+// Kod bloklarını ESCAPE'TEN ÖNCE geçici bir token'la çıkarıyoruz ki içindeki
+// ** / * / ` gibi işaretler markdown olarak yorumlanmasın. Geri kalan metin
+// escapeHtml'den geçtikten SONRA yalnızca bizim eklediğimiz etiketler (<p>,
+// <strong>, <code>, <pre>...) basılıyor — kullanıcı girdisi hiçbir zaman ham
+// HTML olarak yorumlanmıyor.
+function renderRichContent(raw) {
+    const blocks = [];
+    const withPlaceholders = String(raw || '').replace(
+        /```([a-zA-Z0-9_+-]*)\n?([\s\S]*?)```/g,
+        (_, lang, code) => {
+            const token = `CODEBLOCK${blocks.length}`;
+            blocks.push({ lang: lang.trim().replace(/[^a-zA-Z0-9_-]/g, ''), code });
+            return token;
+        }
+    );
+
+    let escaped = escapeHtml(withPlaceholders);
+    escaped = escaped.replace(/`([^`\n]+)`/g, (_, code) => `<code class="inline-code">${code}</code>`);
+    escaped = escaped.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+    escaped = escaped.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+
+    // Paragraflara SONRA bölüyoruz — kod bloğu düz metinle aynı satırda (boş
+    // satır olmadan) yazılsa bile placeholder kaybolmasın; tarayıcı <p>
+    // içindeki <pre>'yi otomatik ayırır, görsel bir sorun çıkarmaz.
+    const withParagraphs = escaped
+        .split(/\n{2,}/)
+        .map(segment => `<p>${segment.replace(/\n/g, '<br>')}</p>`)
+        .join('');
+
+    return withParagraphs.replace(/CODEBLOCK(\d+)/g, (_, i) => {
+        const block = blocks[Number(i)];
+        const langClass = block.lang ? ` class="language-${block.lang}"` : '';
+        return `<pre class="code-block"><code${langClass}>${escapeHtml(block.code)}</code></pre>`;
+    });
+}
+
+// renderRichContent çıktısındaki kod bloklarını sözdizimi renklendirmesinden
+// geçirir. highlight.js CDN'den yüklenmemişse sessizce atlanır.
+function highlightCodeBlocks() {
+    if (typeof hljs === 'undefined') return;
+    document.querySelectorAll('pre.code-block code').forEach(el => hljs.highlightElement(el));
+}
+
+// Liste/kart önizlemeleri için işaretleyicileri temizlenmiş düz metin —
+// aksi halde kod bloğu ``` işaretleri kısaltılmış önizlemede çıplak görünürdü.
+function stripRichSyntax(raw) {
+    return String(raw || '')
+        .replace(/```[a-zA-Z0-9_+-]*\n?([\s\S]*?)```/g, '$1')
+        .replace(/`([^`\n]+)`/g, '$1')
+        .replace(/\*\*([^*\n]+)\*\*/g, '$1')
+        .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1$2')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 // Varsayılan avatar. SVG nitelikleri TEK tırnakla yazılı — bu değer
 // src="..." içine gömüldüğünde çift tırnak niteliği erken kapatıyordu.
 const DEFAULT_AVATAR = "data:image/svg+xml;utf8,"
@@ -122,8 +178,19 @@ function saveSession(data) {
         username: data.username,
         email: data.email,
         userId: data.userId,
+        avatarUrl: data.avatarUrl || null,
         expiresAt: Date.now() + (data.expiresInHours || 12) * 3600 * 1000
     }));
+}
+
+// Profil sayfasında kendi avatarını değiştirince header'ın da yeni resmi
+// göstermesi için oturumdaki avatarUrl'i güncelleriz — yoksa bir sonraki
+// girişe kadar eski görsel görünmeye devam eder.
+function updateSessionAvatar(avatarUrl) {
+    const session = getSession();
+    if (!session) return;
+    session.avatarUrl = avatarUrl || null;
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
 function getUsername() {
@@ -219,7 +286,9 @@ function renderHeader(options = {}) {
     if (!mount) return;
 
     const { active = '', showNewTopic = true } = options;
-    const username = getUsername();
+    const session = getSession();
+    const username = session?.username || null;
+    const avatarUrl = session?.avatarUrl;
 
     const navLink = (href, icon, text, key) => `
         <a href="${href}" class="btn btn-quiet ${active === key ? 'text-ink' : ''}">
@@ -231,10 +300,14 @@ function renderHeader(options = {}) {
         ? `<div class="flex items-center gap-1">
                <a href="profile.html?u=${escapeAttr(username)}"
                   class="btn btn-ghost btn-sm ${active === 'profile' ? 'text-ink' : ''}" title="Profilim">
-                   <span class="w-5 h-5 rounded-md bg-accent/15 border border-accent/30 grid place-items-center text-[10px] font-bold text-accent-soft shrink-0">
-                       ${escapeHtml(username.charAt(0).toUpperCase())}
+                   <span class="w-6 h-6 rounded-md bg-accent/15 border border-accent/30 grid place-items-center overflow-hidden shrink-0">
+                       ${avatarUrl
+                ? `<img src="${escapeHtml(avatarUrl)}" alt="" class="w-full h-full object-cover">`
+                : `<span class="text-[10px] font-bold text-accent-soft">${escapeHtml(username.charAt(0).toUpperCase())}</span>`}
                    </span>
-                   <span class="hidden sm:inline max-w-[10ch] truncate">${escapeHtml(username)}</span>
+                   <span class="hidden sm:flex items-center gap-1.5 min-w-0">
+                       ${renderUserName(username, 'text-[13px] truncate max-w-[9ch]')}${renderBadge(username)}
+                   </span>
                </a>
                <button onclick="logout()" class="btn btn-quiet btn-danger" title="Çıkış Yap" aria-label="Çıkış Yap">
                    <i data-lucide="log-out" class="w-4 h-4"></i>
@@ -249,7 +322,7 @@ function renderHeader(options = {}) {
         <header class="sticky top-0 z-40 border-b border-line bg-base/85 backdrop-blur">
             <div class="max-w-3xl mx-auto px-4 h-14 flex items-center gap-2">
                 <a href="index.html" class="flex items-center gap-2.5 mr-auto shrink-0" aria-label="Ana sayfa">
-                    <span class="w-8 h-8 rounded-lg bg-accent grid place-items-center text-white font-bold text-sm">K</span>
+                    <img src="static/favicon.svg" alt="KORSANCIM" class="w-8 h-8 rounded-lg shrink-0">
                     <span class="font-bold tracking-tight text-ink hidden sm:inline">KORSANCIM</span>
                 </a>
                 ${navLink('index.html', 'layout-list', 'Konular', 'home')}

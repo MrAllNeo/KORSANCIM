@@ -121,6 +121,14 @@ namespace ForumApi.Controllers
                 return BadRequest(new { error = invalidCredentials });
             }
 
+            if (user.IsBanned)
+            {
+                var reason = string.IsNullOrWhiteSpace(user.BanReason)
+                    ? "Hesabınız askıya alınmış."
+                    : $"Hesabınız askıya alınmış: {user.BanReason}";
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = reason });
+            }
+
             // Hash parametreleri eskiyse (iterasyon sayısı vb.) sessizce yenile.
             if (result == PasswordVerificationResult.SuccessRehashNeeded)
             {
@@ -135,7 +143,9 @@ namespace ForumApi.Controllers
                 expiresInHours = TokenService.ExpiryHours,
                 username = user.Username,
                 email = user.Email,
-                userId = user.Id
+                userId = user.Id,
+                role = user.Role,
+                avatarUrl = user.AvatarUrl
             });
         }
     }
