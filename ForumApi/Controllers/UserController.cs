@@ -4,6 +4,7 @@ using ForumApi.Data;
 using ForumApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace ForumApi.Controllers
@@ -56,16 +57,40 @@ namespace ForumApi.Controllers
                 return NotFound(new { error = "Böyle bir kullanıcı bulunamadı." });
             }
 
+            // İçerik artık kullanıcı adına değil, kullanıcı kaydına bağlı.
             var userTopics = await _context.Topics
-                .Where(t => t.AuthorUsername.ToLower() == username.ToLower())
+                .Include(t => t.Category)
+                .Where(t => t.UserId == user.Id)
                 .OrderByDescending(t => t.CreatedAt)
                 .Take(ActivityLimit)
+                .Select(t => new
+                {
+                    t.Id,
+                    t.Title,
+                    t.Content,
+                    t.CategoryId,
+                    CategoryName = t.Category!.Name,
+                    t.LikeCount,
+                    t.CreatedAt,
+                    t.UpdatedAt
+                })
                 .ToListAsync();
 
             var userComments = await _context.Comments
-                .Where(c => c.AuthorUsername.ToLower() == username.ToLower())
+                .Include(c => c.Topic)
+                .Where(c => c.UserId == user.Id)
                 .OrderByDescending(c => c.CreatedAt)
                 .Take(ActivityLimit)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.TopicId,
+                    TopicTitle = c.Topic!.Title,
+                    c.Content,
+                    c.LikeCount,
+                    c.CreatedAt,
+                    c.UpdatedAt
+                })
                 .ToListAsync();
 
             // E-posta bilerek dönülmüyor — profil herkese açık bir uç nokta.
@@ -85,6 +110,7 @@ namespace ForumApi.Controllers
 
         // PUT: api/users/profile — yalnızca kendi profilini günceller.
         [Authorize]
+        [EnableRateLimiting("write")]
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateProfile([FromForm] UpdateProfileDto dto)
         {

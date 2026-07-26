@@ -4,269 +4,463 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Konu Detayı - KORSANCIM</title>
+    <title>Konu — KORSANCIM</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%236366f1'/><text x='16' y='23' font-family='system-ui,sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'>K</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/theme.js"></script>
     <link rel="stylesheet" href="css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="js/app.js"></script>
 </head>
 
-<body
-    class="bg-slate-950 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.2),rgba(255,255,255,0))] min-h-screen text-slate-100 antialiased font-sans p-4 md:p-8">
+<body class="bg-base text-ink font-sans">
 
-    <header
-        class="max-w-4xl mx-auto bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 shadow-2xl rounded-2xl p-4 flex justify-between items-center mb-8">
-        <a href="index.html" class="flex items-center gap-3">
-            <div
-                class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-600/30">
-                K</div>
-            <span
-                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">KORSANCIM</span>
+    <div id="site-header"></div>
+
+    <main class="max-w-3xl mx-auto px-4 py-6 space-y-4">
+
+        <a href="index.html" class="btn btn-quiet -ml-3">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> Konulara dön
         </a>
-        <a href="index.html" class="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1">
-            <i data-lucide="arrow-left" class="w-4 h-4"></i> Ana Sayfaya Dön
-        </a>
-    </header>
 
-    <main class="max-w-4xl mx-auto space-y-6">
-        <div id="topic-container"
-            class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl">
-            <p class="text-xs text-slate-500 animate-pulse">Konu detayları yükleniyor...</p>
-        </div>
-
-        <div class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl">
-            <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                <i data-lucide="message-square-plus" class="w-4 h-4 text-indigo-400"></i> Bu Konuya Yanıt Ver
-            </h3>
-            <form id="comment-form" class="space-y-4">
-                <textarea id="comment-content" rows="3" required placeholder="Düşüncelerini rumuzunla paylaş..."
-                    class="w-full bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition resize-none"></textarea>
-                <div class="flex justify-end">
-                    <button type="submit"
-                        class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-xs font-semibold transition shadow-lg shadow-indigo-600/25 flex items-center gap-1.5">
-                        <i data-lucide="send" class="w-3.5 h-3.5"></i> Yanıtı Gönder
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <div class="space-y-3">
-            <h3 class="text-sm font-bold text-slate-300 flex items-center gap-2">
-                <i data-lucide="messages-square" class="w-4 h-4 text-indigo-400"></i> Yanıtlar
-            </h3>
-            <div id="comments-container" class="space-y-3">
-                <p class="text-xs text-slate-500">Yanıtlar yükleniyor...</p>
+        <article id="topic-container" class="card p-5">
+            <div class="space-y-3">
+                <div class="skeleton h-3 w-28"></div>
+                <div class="skeleton h-5 w-2/3"></div>
+                <div class="skeleton h-3 w-full"></div>
             </div>
-        </div>
+        </article>
+
+        <section>
+            <h2 id="comments-title" class="text-xs font-bold text-ink-soft uppercase tracking-wider mb-2.5">
+                Yanıtlar
+            </h2>
+            <div id="comments-container" class="space-y-2"></div>
+        </section>
+
+        <section id="reply-box" class="card p-5"></section>
+
     </main>
 
+    <footer class="max-w-3xl mx-auto px-4 py-8 text-center">
+        <p class="hint">KORSANCIM · anonim topluluk forumu</p>
+    </footer>
+
     <script>
-        lucide.createIcons();
+        const topicId = new URLSearchParams(window.location.search).get('id');
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const topicId = urlParams.get('id');
+        let currentTopic = null;
+        let likedCommentIds = new Set();
+        let topicLiked = false;
 
-        const DEFAULT_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="%23818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+        // Sahiplik yalnızca butonları göstermek için; asıl kontrol sunucuda.
+        function isMine(authorUsername) {
+            const me = getUsername();
+            return !!me && me.toLowerCase() === String(authorUsername || '').toLowerCase();
+        }
 
+        // ── Konu ────────────────────────────────────────────────
         async function loadTopicDetail() {
             const container = document.getElementById('topic-container');
+
             if (!topicId) {
-                container.innerHTML = `<div class="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl">Konu ID bulunamadı.</div>`;
+                container.innerHTML = `<div class="alert alert-bad">Konu numarası belirtilmemiş.</div>`;
                 return;
             }
 
             try {
                 const res = await fetch(`/api/topics/${topicId}`);
+                if (res.status === 404) {
+                    container.innerHTML = `<div class="alert alert-bad">Bu konu bulunamadı — silinmiş olabilir.</div>`;
+                    return;
+                }
                 if (!res.ok) throw new Error('Konu çekilemedi.');
-                const topic = await res.json();
 
-                const formattedDate = new Date(topic.createdAt).toLocaleDateString('tr-TR', {
-                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-                });
+                currentTopic = await res.json();
+                document.title = `${currentTopic.title} — KORSANCIM`;
 
-                let mediaHtml = '';
-                if (topic.fileUrls && topic.fileUrls.length > 0) {
-                    let imagesHtml = '';
-                    let filesHtml = '';
-
-                    topic.fileUrls.forEach(url => {
-                        const ext = url.split('.').pop().toLowerCase();
-                        const safeUrl = escapeHtml(url);
-                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
-                            imagesHtml += `<a href="${safeUrl}" target="_blank" rel="noopener" class="block overflow-hidden rounded-xl border border-slate-800"><img src="${safeUrl}" class="w-full h-48 object-cover"></a>`;
-                        } else {
-                            filesHtml += `<div class="flex items-center justify-between bg-slate-950/70 p-3 rounded-xl border border-slate-800"><span class="text-xs text-slate-200">${escapeHtml(url.split('/').pop())}</span><a href="${safeUrl}" download class="text-xs text-indigo-400 underline">İndir</a></div>`;
-                        }
-                    });
-
-                    mediaHtml = `<div class="mt-4 pt-4 border-t border-slate-800/80 space-y-3">${imagesHtml ? `<div class="grid grid-cols-2 gap-2">${imagesHtml}</div>` : ''}${filesHtml}</div>`;
+                if (isLoggedIn()) {
+                    const likeRes = await apiFetch(`/api/topics/${topicId}/like`);
+                    if (likeRes.ok) topicLiked = (await likeRes.json()).isLiked;
                 }
 
-                const author = topic.authorUsername || 'Anonim';
-                const authorBadge = renderBadge(author);
-                const authorNameHtml = renderUserName(author);
-
-                container.innerHTML = `
-                    <div class="flex items-center justify-between gap-4 mb-4">
-                        <span class="text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-lg">Kategori #${topic.categoryId}</span>
-                        <span class="text-xs text-slate-500">${formattedDate}</span>
-                    </div>
-                    <h1 class="text-xl font-bold text-white mb-3">${escapeHtml(topic.title)}</h1>
-                    <p class="text-sm text-slate-300 leading-relaxed whitespace-pre-line mb-4">${escapeHtml(topic.content)}</p>
-                    ${mediaHtml}
-
-                    <div class="mt-6 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
-                        <a href="profile.html?u=${escapeAttr(author)}" class="flex items-center gap-2.5 hover:opacity-80 transition">
-                            <div class="w-7 h-7 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center overflow-hidden shrink-0"><img src="${DEFAULT_AVATAR}" class="w-full h-full object-cover"></div>
-                            <span>Yazar: ${authorNameHtml}</span>
-                        </a>
-                        
-                        <div class="flex items-center gap-3">
-                            <button onclick="likeDetailTopic(${topic.id}, this)" class="flex items-center gap-1.5 hover:text-rose-400 transition bg-slate-950/60 border border-slate-800 hover:border-rose-500/30 px-3 py-1.5 rounded-xl">
-                                <i data-lucide="heart" class="w-4 h-4 text-rose-500"></i>
-                                <span class="topic-like-count font-bold text-slate-200">${topic.likeCount || 0}</span>
-                            </button>
-                            ${authorBadge}
-                        </div>
-                    </div>`;
-
-                lucide.createIcons();
+                renderTopic();
             } catch (err) {
-                console.error('Konu Yükleme Hatası:', err);
-                container.innerHTML = `<div class="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl">Konu detayları yüklenirken sunucu hatası oluştu.</div>`;
+                console.error('Konu yükleme hatası:', err);
+                container.innerHTML = `<div class="alert alert-bad">Konu yüklenirken bir sorun oluştu.</div>`;
             }
         }
 
+        function renderTopic() {
+            const t = currentTopic;
+            const author = t.authorUsername;
+            const mine = isMine(author);
+
+            let media = '';
+            if (t.fileUrls?.length) {
+                const images = t.fileUrls.map(url => {
+                    const safe = escapeHtml(url);
+                    return `<a href="${safe}" target="_blank" rel="noopener"
+                               class="block overflow-hidden rounded-lg border border-line">
+                                <img src="${safe}" alt="" loading="lazy" class="w-full h-40 object-cover">
+                            </a>`;
+                }).join('');
+                media = `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">${images}</div>`;
+            }
+
+            const ownerBar = mine ? `
+                <div class="flex items-center gap-1 ml-auto">
+                    <button onclick="startEditTopic()" class="btn btn-quiet btn-sm">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i> Düzenle
+                    </button>
+                    <button onclick="deleteTopic()" class="btn btn-quiet btn-sm btn-danger">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Sil
+                    </button>
+                </div>` : '';
+
+            document.getElementById('topic-container').innerHTML = `
+                <div class="flex items-center gap-2 mb-3 text-xs flex-wrap">
+                    <span class="chip chip-accent">${escapeHtml(t.categoryName || categoryName(t.categoryId))}</span>
+                    <span class="text-ink-faint" title="${escapeHtml(formatDate(t.createdAt))}">
+                        ${escapeHtml(timeAgo(t.createdAt))}${t.updatedAt ? ' · düzenlendi' : ''}
+                    </span>
+                    ${ownerBar}
+                </div>
+
+                <h1 class="text-lg font-bold text-ink mb-3 leading-snug">${escapeHtml(t.title)}</h1>
+                <p class="text-sm text-ink-soft whitespace-pre-line">${escapeHtml(t.content)}</p>
+                ${media}
+
+                <div class="flex items-center gap-2 mt-5 pt-4 divider text-xs flex-wrap">
+                    <a href="profile.html?u=${escapeAttr(author)}" class="flex items-center gap-2 hover:opacity-80 transition">
+                        <span class="w-7 h-7 rounded-lg bg-accent/15 border border-accent/25 grid place-items-center shrink-0 overflow-hidden">
+                            ${t.authorAvatarUrl
+                    ? `<img src="${escapeHtml(t.authorAvatarUrl)}" alt="" class="w-full h-full object-cover">`
+                    : `<span class="text-[11px] font-bold text-accent-soft">${escapeHtml(author.charAt(0).toUpperCase())}</span>`}
+                        </span>
+                        ${renderUserName(author, 'text-[13px]')}
+                    </a>
+                    ${renderBadge(author)}
+
+                    <button onclick="likeDetailTopic(this)" aria-pressed="${topicLiked}"
+                        class="btn btn-quiet btn-sm ml-auto ${topicLiked ? 'text-bad' : ''}">
+                        <i data-lucide="heart" class="w-4 h-4" ${topicLiked ? 'fill="currentColor"' : ''}></i>
+                        <span class="topic-like-count">${t.likeCount || 0}</span>
+                    </button>
+                </div>`;
+
+            lucide.createIcons();
+        }
+
+        function startEditTopic() {
+            getCategories().then(categories => {
+                const options = categories
+                    .map(c => `<option value="${c.id}" ${c.id === currentTopic.categoryId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)
+                    .join('');
+
+                document.getElementById('topic-container').innerHTML = `
+                    <h2 class="text-sm font-bold text-ink mb-4">Konuyu düzenle</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="label" for="edit-title">Başlık</label>
+                            <input id="edit-title" class="input" maxlength="200" value="${escapeHtml(currentTopic.title)}">
+                        </div>
+                        <div>
+                            <label class="label" for="edit-category">Kategori</label>
+                            <select id="edit-category" class="input">${options}</select>
+                        </div>
+                        <div>
+                            <label class="label" for="edit-content">İçerik</label>
+                            <textarea id="edit-content" rows="8" class="input" maxlength="20000">${escapeHtml(currentTopic.content)}</textarea>
+                        </div>
+                        <div id="edit-error" class="hidden alert alert-bad"></div>
+                        <div class="flex justify-end gap-2">
+                            <button onclick="loadTopicDetail()" class="btn btn-quiet">İptal</button>
+                            <button onclick="saveTopicEdit(this)" class="btn btn-primary">Kaydet</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        async function saveTopicEdit(btn) {
+            const errorBox = document.getElementById('edit-error');
+            errorBox.classList.add('hidden');
+            btn.disabled = true;
+
+            try {
+                const res = await apiFetchJson(`/api/topics/${currentTopic.id}`, 'PUT', {
+                    title: document.getElementById('edit-title').value,
+                    categoryId: parseInt(document.getElementById('edit-category').value),
+                    content: document.getElementById('edit-content').value
+                });
+
+                if (res.ok) {
+                    loadTopicDetail();
+                } else {
+                    errorBox.textContent = await readError(res, 'Konu güncellenemedi.');
+                    errorBox.classList.remove('hidden');
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteTopic() {
+            if (!confirm('Bu konu, tüm yanıtları ve ekleri kalıcı olarak silinecek. Emin misiniz?')) return;
+
+            try {
+                const res = await apiFetch(`/api/topics/${currentTopic.id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    window.location.href = 'index.html';
+                } else {
+                    alert(await readError(res, 'Konu silinemedi.'));
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function likeDetailTopic(btn) {
+            if (!isLoggedIn()) { window.location.href = 'auth.html'; return; }
+
+            try {
+                const res = await apiFetch(`/api/topics/${currentTopic.id}/like`, { method: 'POST' });
+                if (!res.ok) return;
+
+                const data = await res.json();
+                topicLiked = data.isLiked;
+                btn.querySelector('.topic-like-count').textContent = data.likes;
+                btn.classList.toggle('text-bad', data.isLiked);
+                btn.setAttribute('aria-pressed', data.isLiked);
+                btn.querySelector('svg')?.setAttribute('fill', data.isLiked ? 'currentColor' : 'none');
+            } catch (err) {
+                console.error('Beğeni hatası:', err);
+            }
+        }
+
+        // ── Yanıtlar ────────────────────────────────────────────
         async function loadComments() {
             if (!topicId) return;
+            const container = document.getElementById('comments-container');
+
             try {
+                if (isLoggedIn()) {
+                    const likeRes = await apiFetch(`/api/comments/topic/${topicId}/likes`);
+                    if (likeRes.ok) {
+                        likedCommentIds = new Set((await likeRes.json()).likedCommentIds);
+                    }
+                }
+
                 const res = await fetch(`/api/comments/topic/${topicId}`);
                 const comments = await res.json();
-                const container = document.getElementById('comments-container');
 
-                if (!comments || comments.length === 0) {
-                    container.innerHTML = `<div class="p-4 bg-slate-900/30 border border-slate-800 rounded-xl text-xs text-slate-500">Henüz yanıt yazılmamış. İlk yanıtı sen ver!</div>`;
+                document.getElementById('comments-title').textContent =
+                    comments.length ? `Yanıtlar (${comments.length})` : 'Yanıtlar';
+
+                if (!comments.length) {
+                    container.innerHTML = `
+                        <div class="card p-8 text-center">
+                            <p class="text-sm text-ink-soft">Henüz yanıt yok. İlk yanıtı sen yaz.</p>
+                        </div>`;
                     return;
                 }
 
-                container.innerHTML = comments.map(c => {
-                    const date = new Date(c.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-                    const author = c.authorUsername || 'Anonim';
-                    const badgeHtml = renderBadge(author);
-                    const usernameHtml = renderUserName(author, 'text-xs');
-
-                    return `
-                        <div class="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 shadow-lg space-y-3">
-                            <div class="flex items-center justify-between">
-                                <a href="profile.html?u=${escapeAttr(author)}" class="flex items-center gap-2">
-                                    <div class="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center overflow-hidden shrink-0"><img src="${DEFAULT_AVATAR}" class="w-full h-full object-cover"></div>
-                                    <div class="flex items-center gap-2">${usernameHtml}${badgeHtml}</div>
-                                </a>
-                                <span class="text-[11px] text-slate-500">${date}</span>
-                            </div>
-                            <p class="text-xs text-slate-300 leading-relaxed whitespace-pre-line pl-9">${escapeHtml(c.content)}</p>
-
-                            <div class="flex items-center justify-end pt-2 border-t border-slate-800/60">
-                                <button onclick="likeComment(${c.id}, this)" class="flex items-center gap-1 text-xs text-slate-400 hover:text-rose-400 transition bg-slate-950/50 border border-slate-800 hover:border-rose-500/30 px-2.5 py-1 rounded-lg">
-                                    <i data-lucide="heart" class="w-3.5 h-3.5 text-rose-500"></i>
-                                    <span class="comment-like-count font-semibold">${c.likeCount || 0}</span>
-                                </button>
-                            </div>
-                        </div>`;
-                }).join('');
-
+                container.innerHTML = comments.map(renderComment).join('');
                 lucide.createIcons();
             } catch (err) {
-                console.error('Yorum Yükleme Hatası:', err);
+                console.error('Yanıt yükleme hatası:', err);
+                container.innerHTML = `<div class="alert alert-bad">Yanıtlar yüklenemedi.</div>`;
             }
         }
 
-        // Konu Detay Beğenme (1 Kullanıcı = 1 Beğeni / Toggle)
-        async function likeDetailTopic(id, btnElement) {
-            if (!isLoggedIn()) {
-                window.location.href = 'auth.html';
-                return;
-            }
+        function renderComment(c) {
+            const author = c.authorUsername;
+            const liked = likedCommentIds.has(c.id);
 
-            try {
-                const res = await apiFetch(`/api/topics/${id}/like`, { method: 'POST' });
+            const ownerActions = isMine(author) ? `
+                <button onclick="startEditComment(${c.id})" class="btn btn-quiet btn-sm" title="Düzenle" aria-label="Düzenle">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="deleteComment(${c.id})" class="btn btn-quiet btn-sm btn-danger" title="Sil" aria-label="Sil">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>` : '';
 
-                if (res.ok) {
-                    const data = await res.json();
-                    const countSpan = btnElement.querySelector('.topic-like-count');
-                    if (countSpan) {
-                        countSpan.innerText = data.likes;
-                    }
+            return `
+            <div class="card p-4" data-comment-id="${c.id}">
+                <div class="flex items-center gap-2 mb-2.5 text-xs flex-wrap">
+                    <a href="profile.html?u=${escapeAttr(author)}" class="flex items-center gap-2 hover:opacity-80 transition">
+                        <span class="w-6 h-6 rounded-md bg-accent/15 border border-accent/25 grid place-items-center shrink-0 overflow-hidden">
+                            ${c.authorAvatarUrl
+                    ? `<img src="${escapeHtml(c.authorAvatarUrl)}" alt="" class="w-full h-full object-cover">`
+                    : `<span class="text-[10px] font-bold text-accent-soft">${escapeHtml(author.charAt(0).toUpperCase())}</span>`}
+                        </span>
+                        ${renderUserName(author, 'text-[13px]')}
+                    </a>
+                    ${renderBadge(author)}
+                    <span class="text-ink-faint ml-auto" title="${escapeHtml(formatDate(c.createdAt))}">
+                        ${escapeHtml(timeAgo(c.createdAt))}${c.updatedAt ? ' · düzenlendi' : ''}
+                    </span>
+                </div>
 
-                    if (data.isLiked) {
-                        btnElement.classList.add('text-rose-400', 'border-rose-500/50');
-                    } else {
-                        btnElement.classList.remove('text-rose-400', 'border-rose-500/50');
-                    }
-                }
-            } catch (err) {
-                console.error('Konu Like Hatası:', err);
-            }
+                <div class="comment-body">
+                    <p class="text-[13px] text-ink-soft whitespace-pre-line">${escapeHtml(c.content)}</p>
+                </div>
+
+                <div class="flex items-center gap-1 mt-3 pt-3 divider">
+                    ${ownerActions}
+                    <button onclick="likeComment(${c.id}, this)" aria-pressed="${liked}"
+                        class="btn btn-quiet btn-sm ml-auto ${liked ? 'text-bad' : ''}">
+                        <i data-lucide="heart" class="w-3.5 h-3.5" ${liked ? 'fill="currentColor"' : ''}></i>
+                        <span class="comment-like-count">${c.likeCount || 0}</span>
+                    </button>
+                </div>
+            </div>`;
         }
 
-        // Yorum Beğenme (1 Kullanıcı = 1 Beğeni / Toggle)
-        async function likeComment(id, btnElement) {
-            if (!isLoggedIn()) {
-                window.location.href = 'auth.html';
-                return;
-            }
+        function startEditComment(commentId) {
+            const card = document.querySelector(`[data-comment-id="${commentId}"]`);
+            const body = card?.querySelector('.comment-body');
+            if (!body || body.querySelector('textarea')) return;
 
-            try {
-                const res = await apiFetch(`/api/comments/${id}/like`, { method: 'POST' });
+            const original = body.querySelector('p').textContent;
 
-                if (res.ok) {
-                    const data = await res.json();
-                    const countSpan = btnElement.querySelector('.comment-like-count');
-                    if (countSpan) {
-                        countSpan.innerText = data.likes;
-                    }
+            body.innerHTML = `
+                <textarea rows="4" class="input text-[13px]" maxlength="5000">${escapeHtml(original)}</textarea>
+                <div class="flex justify-end gap-2 mt-2">
+                    <button onclick="loadComments()" class="btn btn-quiet btn-sm">İptal</button>
+                    <button onclick="saveCommentEdit(${commentId}, this)" class="btn btn-primary btn-sm">Kaydet</button>
+                </div>`;
 
-                    if (data.isLiked) {
-                        btnElement.classList.add('text-rose-400', 'border-rose-500/50');
-                    } else {
-                        btnElement.classList.remove('text-rose-400', 'border-rose-500/50');
-                    }
-                }
-            } catch (err) {
-                console.error('Yorum Like Hatası:', err);
-            }
+            body.querySelector('textarea').focus();
         }
 
-        document.getElementById('comment-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            if (!isLoggedIn()) {
-                window.location.href = 'auth.html';
-                return;
-            }
-
-            const content = document.getElementById('comment-content').value;
+        async function saveCommentEdit(commentId, btn) {
+            const textarea = document.querySelector(`[data-comment-id="${commentId}"] textarea`);
+            if (!textarea) return;
+            btn.disabled = true;
 
             try {
-                // Yazar sunucuda token'dan belirleniyor.
-                const res = await apiFetchJson('/api/comments', 'POST', {
-                    topicId: parseInt(topicId),
-                    content
-                });
-
+                const res = await apiFetchJson(`/api/comments/${commentId}`, 'PUT', { content: textarea.value });
                 if (res.ok) {
-                    document.getElementById('comment-content').value = '';
                     loadComments();
                 } else {
-                    alert(await readError(res, 'Yorum gönderilemedi.'));
+                    alert(await readError(res, 'Yanıt güncellenemedi.'));
+                    btn.disabled = false;
                 }
-            } catch (err) { console.error(err); }
-        });
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false;
+            }
+        }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            renderUserNav();
-            loadTopicDetail();
-            loadComments();
+        async function deleteComment(commentId) {
+            if (!confirm('Bu yanıt kalıcı olarak silinecek. Emin misiniz?')) return;
+
+            try {
+                const res = await apiFetch(`/api/comments/${commentId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadComments();
+                } else {
+                    alert(await readError(res, 'Yanıt silinemedi.'));
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // ── Yanıt kutusu ────────────────────────────────────────
+        // Çıkış yapmış kullanıcıya boş bir form göstermek yerine doğrudan
+        // giriş daveti gösteriyoruz; eskiden yazıp gönderince atılıyordu.
+        function renderReplyBox() {
+            const box = document.getElementById('reply-box');
+
+            if (!isLoggedIn()) {
+                box.innerHTML = `
+                    <div class="text-center py-2">
+                        <p class="text-sm text-ink-soft mb-3">Yanıt yazmak için giriş yapmalısın.</p>
+                        <a href="auth.html" class="btn btn-primary">
+                            <i data-lucide="log-in" class="w-4 h-4"></i> Giriş Yap
+                        </a>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            box.innerHTML = `
+                <h2 class="text-sm font-bold text-ink mb-3">Yanıt yaz</h2>
+                <form id="comment-form" class="space-y-3">
+                    <textarea id="comment-content" rows="4" required maxlength="5000"
+                        placeholder="Düşüncelerini paylaş…" class="input"></textarea>
+                    <div class="flex items-center gap-3">
+                        <span id="comment-counter" class="hint"></span>
+                        <button type="submit" id="comment-submit" class="btn btn-primary ml-auto">
+                            <i data-lucide="send" class="w-4 h-4"></i> Gönder
+                        </button>
+                    </div>
+                    <div id="comment-error" class="hidden alert alert-bad"></div>
+                </form>`;
+
+            attachCounter('comment-content', 'comment-counter', 5000);
+            lucide.createIcons();
+
+            document.getElementById('comment-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const submit = document.getElementById('comment-submit');
+                const errorBox = document.getElementById('comment-error');
+                const content = document.getElementById('comment-content');
+
+                errorBox.classList.add('hidden');
+                submit.disabled = true;
+
+                try {
+                    const res = await apiFetchJson('/api/comments', 'POST', {
+                        topicId: parseInt(topicId),
+                        content: content.value
+                    });
+
+                    if (res.ok) {
+                        content.value = '';
+                        attachCounter('comment-content', 'comment-counter', 5000);
+                        await loadComments();
+                    } else {
+                        errorBox.textContent = await readError(res, 'Yanıt gönderilemedi.');
+                        errorBox.classList.remove('hidden');
+                    }
+                } catch (err) {
+                    console.error(err);
+                } finally {
+                    submit.disabled = false;
+                }
+            });
+        }
+
+        async function likeComment(commentId, btn) {
+            if (!isLoggedIn()) { window.location.href = 'auth.html'; return; }
+
+            try {
+                const res = await apiFetch(`/api/comments/${commentId}/like`, { method: 'POST' });
+                if (!res.ok) return;
+
+                const data = await res.json();
+                btn.querySelector('.comment-like-count').textContent = data.likes;
+                btn.classList.toggle('text-bad', data.isLiked);
+                btn.setAttribute('aria-pressed', data.isLiked);
+                btn.querySelector('svg')?.setAttribute('fill', data.isLiked ? 'currentColor' : 'none');
+            } catch (err) {
+                console.error('Beğeni hatası:', err);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderHeader();
+            await getCategories();
+            renderReplyBox();
+            await loadTopicDetail();
+            await loadComments();
         });
     </script>
 </body>

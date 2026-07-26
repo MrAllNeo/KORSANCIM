@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using ForumApi.Data;
 using ForumApi.Models;
 using ForumApi.Services;
@@ -56,6 +57,60 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+
+// ── Rate Limiting ────────────────────────────────────────────
+// Bölümleme IP bazlı. Ters vekil (nginx vb.) arkasına konursa
+// ForwardedHeaders eklenmeli, yoksa tüm istekler tek IP'den görünür.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Genel tavan — normal gezinmeyi engellemeyecek kadar geniş.
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(context), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 120,
+            Window = TimeSpan.FromMinutes(1)
+        }));
+
+    // Giriş/kayıt — kaba kuvvet denemesini yavaşlatır.
+    options.AddPolicy("auth", context =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(context), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 8,
+            Window = TimeSpan.FromMinutes(5)
+        }));
+
+    // Yazma işlemleri — konu/yorum/beğeni seli engellenir.
+    options.AddPolicy("write", context =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(context), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(1)
+        }));
+
+    options.OnRejected = async (context, token) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)retryAfter.TotalSeconds).ToString();
+        }
+
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            error = "Çok fazla istek gönderdiniz. Lütfen biraz bekleyip tekrar deneyin."
+        }, token);
+    };
+
+    // Giriş yapmış kullanıcıyı kendi adıyla, anonimi IP ile bölümle.
+    static string ClientKey(HttpContext context) =>
+        context.User.Identity?.IsAuthenticated == true
+            ? "user:" + context.User.Identity.Name
+            : "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "bilinmiyor");
+});
+
 builder.Services.AddControllers();
 
 // Model doğrulama hataları da arayüzün beklediği { error: "..." } şeklinde dönsün
@@ -94,8 +149,28 @@ app.Use(async (context, next) =>
 app.UseDefaultFiles(); // kök URL -> wwwroot/index.html
 app.UseStaticFiles();  // wwwroot altındaki html/css/js ve /uploads
 
+// Bilinmeyen sayfa isteklerinde 404.html göster. /api/ altındaki yollar
+// hariç — onlar JSON hata dönmeli, HTML değil.
+app.UseStatusCodePages(async context =>
+{
+    var response = context.HttpContext.Response;
+    var path = context.HttpContext.Request.Path;
+
+    if (response.StatusCode == StatusCodes.Status404NotFound &&
+        !path.StartsWithSegments("/api"))
+    {
+        response.ContentType = "text/html; charset=utf-8";
+        await response.SendFileAsync(Path.Combine(app.Environment.WebRootPath, "404.html"));
+    }
+});
+
 app.UseCors("AllowAll");
 app.UseAuthentication();
+
+// Statik dosyalardan sonra: sayfa/görsel istekleri sayaca girmesin,
+// kimlik doğrulamadan sonra: bölümleme kullanıcı adını görebilsin.
+app.UseRateLimiter();
+
 app.UseAuthorization();
 app.MapControllers();
 

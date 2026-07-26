@@ -4,6 +4,7 @@ using ForumApi.Models;
 using ForumApi.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace ForumApi.Controllers
@@ -51,6 +52,7 @@ namespace ForumApi.Controllers
         }
 
         // 1. Kullanıcı Kaydı (POST: /api/auth/register)
+        [EnableRateLimiting("auth")]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
@@ -85,6 +87,7 @@ namespace ForumApi.Controllers
         }
 
         // 2. Kullanıcı Girişi (POST: /api/auth/login)
+        [EnableRateLimiting("auth")]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {

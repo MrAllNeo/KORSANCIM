@@ -6,6 +6,7 @@ using ForumApi.Models;
 using ForumApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace ForumApi.Controllers
@@ -14,6 +15,9 @@ namespace ForumApi.Controllers
     [Route("api/[controller]")]
     public class TopicsController : ControllerBase
     {
+        private const int DefaultPageSize = 20;
+        private const int MaxPageSize = 50;
+
         private readonly AppDbContext _context;
         private readonly FileUploadService _uploads;
 
@@ -24,8 +28,8 @@ namespace ForumApi.Controllers
         }
 
         // Kimlik yalnızca doğrulanmış token'dan gelir; istemcinin gönderdiği
-        // hiçbir kullanıcı adı alanına güvenilmez.
-        private string CurrentUsername => User.FindFirstValue(ClaimTypes.Name)!;
+        // hiçbir alana güvenilmez.
+        private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         public class CreateTopicDto
         {
@@ -45,70 +49,138 @@ namespace ForumApi.Controllers
             public List<IFormFile>? Files { get; set; }
         }
 
-        // GET: api/topics
-        [HttpGet]
-        public async Task<IActionResult> GetTopics([FromQuery] int categoryId = 0)
+        public class UpdateTopicDto
         {
-            var query = _context.Topics.AsQueryable();
+            [Required(ErrorMessage = "Başlık zorunludur.")]
+            [StringLength(200, MinimumLength = 3, ErrorMessage = "Başlık 3-200 karakter olmalıdır.")]
+            public string Title { get; set; } = string.Empty;
+
+            [Range(1, int.MaxValue, ErrorMessage = "Geçerli bir kategori seçin.")]
+            public int CategoryId { get; set; }
+
+            [Required(ErrorMessage = "İçerik zorunludur.")]
+            [StringLength(20000, MinimumLength = 1, ErrorMessage = "İçerik en fazla 20000 karakter olabilir.")]
+            public string Content { get; set; } = string.Empty;
+        }
+
+        // Yazar ve kategori bilgisi ilişkiden okunur; artık kopya string yok.
+        // likedByMe, girişli kullanıcının beğenip beğenmediğini taşır; null ise
+        // istek anonim demektir.
+        private static object ToDto(Topic t, bool? likedByMe = null) => new
+        {
+            t.Id,
+            t.Title,
+            t.Content,
+            t.CategoryId,
+            CategoryName = t.Category?.Name,
+            CategorySlug = t.Category?.Slug,
+            t.IsLegalTermsAccepted,
+            t.UserId,
+            AuthorUsername = t.User?.Username ?? "(silinmiş kullanıcı)",
+            AuthorAvatarUrl = t.User?.AvatarUrl,
+            t.LikeCount,
+            CommentCount = t.Comments?.Count ?? 0,
+            t.CreatedAt,
+            t.UpdatedAt,
+            LikedByMe = likedByMe,
+            FileUrls = ParseFileUrls(t.FileUrlsJson)
+        };
+
+        // Girişli kullanıcının bu sayfadaki hangi konuları beğendiğini TEK
+        // sorguda getirir; eskiden arayüz konu başına ayrı istek atıyordu.
+        private async Task<HashSet<int>> LikedTopicIdsAsync(IEnumerable<int> topicIds)
+        {
+            if (User.Identity?.IsAuthenticated != true) return new HashSet<int>();
+
+            var userId = CurrentUserId;
+            var ids = topicIds.ToList();
+
+            return (await _context.TopicLikes
+                .Where(l => l.UserId == userId && ids.Contains(l.TopicId))
+                .Select(l => l.TopicId)
+                .ToListAsync()).ToHashSet();
+        }
+
+        private static List<string> ParseFileUrls(string? json) =>
+            string.IsNullOrEmpty(json)
+                ? new List<string>()
+                : JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
+
+        // GET: api/topics?categoryId=1&page=1&pageSize=20
+        [HttpGet]
+        public async Task<IActionResult> GetTopics(
+            [FromQuery] int categoryId = 0,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = DefaultPageSize)
+        {
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+
+            var query = _context.Topics
+                .Include(t => t.User)
+                .Include(t => t.Category)
+                .Include(t => t.Comments)
+                .AsQueryable();
 
             if (categoryId > 0)
             {
                 query = query.Where(t => t.CategoryId == categoryId);
             }
 
-            var topics = await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
+            var total = await query.CountAsync();
 
-            var result = topics.Select(t => new
+            var topics = await query
+                .OrderByDescending(t => t.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var liked = await LikedTopicIdsAsync(topics.Select(t => t.Id));
+            var isAuthenticated = User.Identity?.IsAuthenticated == true;
+
+            return Ok(new
             {
-                t.Id,
-                t.Title,
-                t.CategoryId,
-                t.Content,
-                t.IsLegalTermsAccepted,
-                t.AuthorUsername,
-                t.LikeCount,
-                t.CreatedAt,
-                FileUrls = string.IsNullOrEmpty(t.FileUrlsJson)
-                    ? new List<string>()
-                    : JsonSerializer.Deserialize<List<string>>(t.FileUrlsJson)
+                items = topics.Select(t => ToDto(t, isAuthenticated ? liked.Contains(t.Id) : (bool?)null)),
+                page,
+                pageSize,
+                total,
+                totalPages = (int)Math.Ceiling(total / (double)pageSize),
+                hasMore = page * pageSize < total
             });
-
-            return Ok(result);
         }
 
         // GET: api/topics/5
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTopic(int id)
         {
-            var topic = await _context.Topics.FindAsync(id);
+            var topic = await _context.Topics
+                .Include(t => t.User)
+                .Include(t => t.Category)
+                .Include(t => t.Comments)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
             if (topic == null) return NotFound(new { error = "Konu bulunamadı." });
 
-            var result = new
-            {
-                topic.Id,
-                topic.Title,
-                topic.CategoryId,
-                topic.Content,
-                topic.IsLegalTermsAccepted,
-                topic.AuthorUsername,
-                topic.LikeCount,
-                topic.CreatedAt,
-                FileUrls = string.IsNullOrEmpty(topic.FileUrlsJson)
-                    ? new List<string>()
-                    : JsonSerializer.Deserialize<List<string>>(topic.FileUrlsJson)
-            };
+            var liked = await LikedTopicIdsAsync(new[] { topic.Id });
+            var isAuthenticated = User.Identity?.IsAuthenticated == true;
 
-            return Ok(result);
+            return Ok(ToDto(topic, isAuthenticated ? liked.Contains(topic.Id) : (bool?)null));
         }
 
         // POST: api/topics
         [Authorize]
+        [EnableRateLimiting("write")]
         [HttpPost]
         public async Task<IActionResult> CreateTopic([FromForm] CreateTopicDto dto)
         {
             if (!dto.IsLegalTermsAccepted)
             {
                 return BadRequest(new { error = "Yasal şartları kabul etmelisiniz." });
+            }
+
+            if (!await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId))
+            {
+                return BadRequest(new { error = "Böyle bir kategori yok." });
             }
 
             var fileUrls = new List<string>();
@@ -141,7 +213,7 @@ namespace ForumApi.Controllers
                 CategoryId = dto.CategoryId,
                 Content = dto.Content,
                 IsLegalTermsAccepted = dto.IsLegalTermsAccepted,
-                AuthorUsername = CurrentUsername,
+                UserId = CurrentUserId,
                 FileUrlsJson = fileUrls.Count > 0 ? JsonSerializer.Serialize(fileUrls) : null,
                 CreatedAt = DateTime.UtcNow
             };
@@ -149,34 +221,99 @@ namespace ForumApi.Controllers
             _context.Topics.Add(topic);
             await _context.SaveChangesAsync();
 
-            return Ok(topic);
+            await _context.Entry(topic).Reference(t => t.User).LoadAsync();
+            await _context.Entry(topic).Reference(t => t.Category).LoadAsync();
+
+            return Ok(ToDto(topic));
+        }
+
+        // PUT: api/topics/5 — yalnızca konunun sahibi düzenleyebilir.
+        [Authorize]
+        [EnableRateLimiting("write")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateTopic(int id, [FromBody] UpdateTopicDto dto)
+        {
+            var topic = await _context.Topics
+                .Include(t => t.User)
+                .Include(t => t.Category)
+                .Include(t => t.Comments)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (topic == null) return NotFound(new { error = "Konu bulunamadı." });
+
+            if (topic.UserId != CurrentUserId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { error = "Bu konu size ait değil." });
+            }
+
+            if (!await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId))
+            {
+                return BadRequest(new { error = "Böyle bir kategori yok." });
+            }
+
+            topic.Title = dto.Title;
+            topic.CategoryId = dto.CategoryId;
+            topic.Content = dto.Content;
+            topic.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            await _context.Entry(topic).Reference(t => t.Category).LoadAsync();
+
+            return Ok(ToDto(topic));
+        }
+
+        // DELETE: api/topics/5
+        [Authorize]
+        [EnableRateLimiting("write")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTopic(int id)
+        {
+            var topic = await _context.Topics.FindAsync(id);
+            if (topic == null) return NotFound(new { error = "Konu bulunamadı." });
+
+            if (topic.UserId != CurrentUserId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { error = "Bu konu size ait değil." });
+            }
+
+            // Yorumlar ve beğeniler artık veritabanı cascade'i ile gidiyor;
+            // yalnızca diskteki dosyaları elle temizlemek kalıyor.
+            var fileUrls = ParseFileUrls(topic.FileUrlsJson);
+
+            _context.Topics.Remove(topic);
+            await _context.SaveChangesAsync();
+
+            _uploads.DeleteAll(fileUrls);
+
+            return Ok(new { message = "Konu silindi." });
         }
 
         // POST: api/topics/5/like
         [Authorize]
+        [EnableRateLimiting("write")]
         [HttpPost("{id}/like")]
         public async Task<IActionResult> LikeTopic(int id)
         {
             var topic = await _context.Topics.FindAsync(id);
             if (topic == null) return NotFound(new { error = "Konu bulunamadı." });
 
-            var username = CurrentUsername;
+            var userId = CurrentUserId;
 
             var existingLike = await _context.TopicLikes
-                .FirstOrDefaultAsync(l => l.TopicId == id && l.Username == username);
+                .FirstOrDefaultAsync(l => l.TopicId == id && l.UserId == userId);
 
             bool isLiked;
 
             if (existingLike != null)
             {
-                // Zaten beğenmişse beğeniyi geri al (Unlike)
                 _context.TopicLikes.Remove(existingLike);
                 isLiked = false;
             }
             else
             {
-                // Beğenmemişse yeni beğeni ekle
-                _context.TopicLikes.Add(new TopicLike { TopicId = id, Username = username });
+                _context.TopicLikes.Add(new TopicLike { TopicId = id, UserId = userId });
                 isLiked = true;
             }
 
@@ -187,14 +324,13 @@ namespace ForumApi.Controllers
             catch (DbUpdateException)
             {
                 // Unique index ihlali: aynı anda gelen ikinci beğeni isteği.
-                // İlk istek zaten kaydı yazmış durumda, sayacı yeniden hesaplayıp dönüyoruz.
                 _context.ChangeTracker.Clear();
                 var current = await _context.TopicLikes.CountAsync(l => l.TopicId == id);
                 return Ok(new { likes = current, isLiked = true });
             }
 
-            // Sayacı beğeni tablosundan türetiyoruz — okuyup-artırmaya göre
-            // yarış koşullarına karşı dayanıklı.
+            // Sayaç beğeni tablosundan türetiliyor — oku-artır'a göre yarış
+            // koşullarına dayanıklı.
             topic.LikeCount = await _context.TopicLikes.CountAsync(l => l.TopicId == id);
             await _context.SaveChangesAsync();
 
@@ -206,8 +342,8 @@ namespace ForumApi.Controllers
         [HttpGet("{id}/like")]
         public async Task<IActionResult> GetLikeState(int id)
         {
-            var username = CurrentUsername;
-            var isLiked = await _context.TopicLikes.AnyAsync(l => l.TopicId == id && l.Username == username);
+            var userId = CurrentUserId;
+            var isLiked = await _context.TopicLikes.AnyAsync(l => l.TopicId == id && l.UserId == userId);
             return Ok(new { isLiked });
         }
     }

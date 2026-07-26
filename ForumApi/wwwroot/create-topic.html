@@ -4,121 +4,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yeni Konu Aç - KORSANCIM</title>
+    <title>Yeni Konu — KORSANCIM</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%236366f1'/><text x='16' y='23' font-family='system-ui,sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'>K</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/theme.js"></script>
     <link rel="stylesheet" href="css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="js/app.js"></script>
 </head>
 
-<body
-    class="bg-slate-950 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.2),rgba(255,255,255,0))] min-h-screen text-slate-100 antialiased font-sans p-4 md:p-8">
+<body class="bg-base text-ink font-sans">
 
-    <header
-        class="max-w-3xl mx-auto bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 shadow-2xl rounded-2xl p-4 flex justify-between items-center mb-8">
-        <a href="index.html" class="flex items-center gap-3">
-            <div
-                class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-600/30">
-                K</div>
-            <span
-                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">KORSANCIM</span>
+    <div id="site-header"></div>
+
+    <main class="max-w-3xl mx-auto px-4 py-6">
+
+        <a href="index.html" class="btn btn-quiet -ml-3 mb-3">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> Vazgeç
         </a>
-        <div class="flex items-center gap-3">
-            <div id="user-nav-area"></div>
-            <a href="index.html" class="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1">
-                <i data-lucide="x" class="w-4 h-4"></i> İptal Et
-            </a>
-        </div>
-    </header>
 
-    <main class="max-w-3xl mx-auto">
-        <div class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl">
-            <h1 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                <i data-lucide="plus-circle" class="w-5 h-5 text-indigo-400"></i> Yeni Tartışma / Konu Başlat
-            </h1>
-            <p class="text-xs text-slate-400 mb-6">Toplulukla paylaşmak istediğin soruyu veya konuyu anonim rumuzunla
-                oluştur.</p>
+        <div class="card p-6">
+            <h1 class="text-base font-bold text-ink mb-1">Yeni konu aç</h1>
+            <p class="hint mb-6">Sorunu veya paylaşmak istediğini topluluğa anlat.</p>
 
             <form id="create-topic-form" class="space-y-5">
+
                 <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Konu Başlığı</label>
-                    <input type="text" id="topic-title" required placeholder="Dikkat çekici ve kısa bir başlık girin..."
-                        class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition">
+                    <div class="flex items-baseline gap-3 mb-1.5">
+                        <label class="label mb-0" for="topic-title">Başlık</label>
+                        <span id="title-counter" class="hint ml-auto"></span>
+                    </div>
+                    <input type="text" id="topic-title" required minlength="3" maxlength="200" class="input"
+                        placeholder="Kısa ve açıklayıcı bir başlık">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Kategori</label>
-                    <select id="topic-category" required
-                        class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition">
-                        <option value="" disabled selected>Bir kategori seçin</option>
-                        <option value="1">Yazılım & Kodlama</option>
-                        <option value="2">Donanım & Sistem</option>
-                        <option value="3">Geyik & Sohbet</option>
+                    <label class="label" for="topic-category">Kategori</label>
+                    <select id="topic-category" required class="input">
+                        <option value="" disabled selected>Yükleniyor…</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">İçerik Detayı</label>
-                    <textarea id="topic-content" rows="5" required placeholder="Detayları buraya yazın..."
-                        class="w-full bg-slate-950/70 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition resize-none"></textarea>
+                    <div class="flex items-baseline gap-3 mb-1.5">
+                        <label class="label mb-0" for="topic-content">İçerik</label>
+                        <span id="content-counter" class="hint ml-auto"></span>
+                    </div>
+                    <textarea id="topic-content" rows="9" required maxlength="20000" class="input"
+                        placeholder="Detayları buraya yaz…"></textarea>
                 </div>
 
-                <!-- Medya veya Dosya / Klasör Yükleme Alanı -->
                 <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="block text-xs font-semibold text-slate-300">Medya, Dosya veya Klasör Ekle</label>
-                        <span class="text-[10px] text-slate-500 font-medium">Çoklu Seçim & Klasör Destekli</span>
-                    </div>
-                    <div
-                        class="relative border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-2xl p-6 text-center transition bg-slate-950/40 group cursor-pointer">
-                        <!-- Çoklu Görsel Yükleme Input'u -->
-                        <input type="file" id="topic-files" multiple
-                            accept="image/jpeg,image/png,image/gif,image/webp"
-                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                            onchange="handleFileSelect(event)">
-
-                        <div class="flex flex-col items-center justify-center gap-2 pointer-events-none">
-                            <div
-                                class="w-10 h-10 rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:scale-110 transition duration-300">
-                                <i data-lucide="folder-up" class="w-5 h-5"></i>
-                            </div>
-                            <p class="text-xs text-slate-300 font-medium">Görsel seçmek için tıklayın veya buraya
-                                sürükleyin</p>
-                            <p class="text-[11px] text-slate-500">JPG, PNG, GIF veya WEBP — en fazla 5 dosya, dosya
-                                başına 5 MB</p>
-                        </div>
-                    </div>
-
-                    <!-- Seçilen Dosyaların Listelendiği Alan -->
-                    <div id="file-list" class="mt-3 space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
+                    <label class="label">Görseller <span class="text-ink-faint font-normal">(isteğe bağlı)</span></label>
+                    <label
+                        class="relative flex flex-col items-center justify-center gap-2 border border-dashed border-line hover:border-line-strong rounded-lg py-7 px-4 text-center cursor-pointer transition bg-sunken">
+                        <input type="file" id="topic-files" multiple accept="image/jpeg,image/png,image/gif,image/webp"
+                            class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileSelect(event)">
+                        <i data-lucide="image-plus" class="w-6 h-6 text-ink-faint"></i>
+                        <span class="text-[13px] text-ink-soft">Görsel seçmek için tıkla</span>
+                        <span class="hint">JPG, PNG, GIF, WEBP · en fazla 5 dosya · dosya başına 5 MB</span>
+                    </label>
+                    <div id="file-list" class="mt-2 space-y-1.5"></div>
                 </div>
 
-                <!-- Yasal Onay Kutusu -->
-                <div class="bg-rose-500/5 border border-rose-500/20 rounded-2xl p-4 mt-6">
-                    <div class="flex items-start gap-3">
-                        <input type="checkbox" id="legal-terms" required
-                            class="mt-1 w-4 h-4 rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-indigo-500/50 cursor-pointer">
-                        <label for="legal-terms"
-                            class="text-xs text-slate-300 leading-relaxed cursor-pointer select-none">
-                            <strong class="text-rose-400 font-semibold block mb-0.5">Topluluk Kuralları & Sorumluluk
-                                Reddi:</strong>
-                            Paylaştığım içeriğin tüm yasal ve cezai sorumluluğunun şahsıma ait olduğunu; illegal
-                            faaliyetler, çocuk istismarı/saldırganlığı, ırkçılık, dini veya kültürel değerleri
-                            aşağılayan ya da ayrımcılık içeren ögeler barındırmadığını beyan ederim.
-                        </label>
-                    </div>
-                </div>
+                <label
+                    class="flex items-start gap-3 p-4 rounded-lg border border-line bg-sunken cursor-pointer select-none">
+                    <input type="checkbox" id="legal-terms" required
+                        class="mt-0.5 w-4 h-4 rounded accent-accent shrink-0 cursor-pointer">
+                    <span class="text-[13px] text-ink-soft leading-relaxed">
+                        <strong class="text-ink block mb-0.5">Topluluk kuralları ve sorumluluk reddi</strong>
+                        Paylaştığım içeriğin tüm yasal sorumluluğunun bana ait olduğunu; illegal faaliyet, çocuk
+                        istismarı, ırkçılık, dini veya kültürel değerleri aşağılayan ya da ayrımcılık içeren öge
+                        barındırmadığını beyan ederim.
+                    </span>
+                </label>
 
-                <!-- KIRMIZI HATA MESAJI BİLDİRİM ALANI -->
-                <div id="error-message"
-                    class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-400 p-3.5 rounded-xl text-xs font-medium flex items-center gap-2 animate-bounce">
-                    <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
-                    <span id="error-text">Bir hata oluştu.</span>
-                </div>
+                <div id="error-message" class="hidden alert alert-bad"></div>
 
-                <div class="flex justify-end pt-2">
-                    <button type="submit" id="submit-btn"
-                        class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition shadow-lg shadow-indigo-600/25 flex items-center gap-2">
+                <div class="flex justify-end gap-2 pt-1">
+                    <a href="index.html" class="btn btn-quiet">İptal</a>
+                    <button type="submit" id="submit-btn" class="btn btn-primary">
                         <i data-lucide="send" class="w-4 h-4"></i> Konuyu Yayınla
                     </button>
                 </div>
@@ -126,90 +92,88 @@
         </div>
     </main>
 
+    <footer class="max-w-3xl mx-auto px-4 py-8 text-center">
+        <p class="hint">KORSANCIM · anonim topluluk forumu</p>
+    </footer>
+
     <script>
-        lucide.createIcons();
+        const MAX_FILES = 5;
+        const MAX_BYTES = 5 * 1024 * 1024;
+        let selectedFiles = [];
 
-        let selectedFilesArray = [];
-
-        // Seçilen dosya veya klasör içeriklerini yakalama
         function handleFileSelect(event) {
-            const fileList = document.getElementById('file-list');
-            fileList.innerHTML = '';
-            const files = event.target.files;
+            const list = document.getElementById('file-list');
+            const errorBox = document.getElementById('error-message');
+            errorBox.classList.add('hidden');
 
-            // Seçilen tüm geçerli dosyaları listeye al
-            selectedFilesArray = Array.from(files).filter(file => file.size > 0);
+            selectedFiles = Array.from(event.target.files).filter(f => f.size > 0);
 
-            if (selectedFilesArray.length > 0) {
-                selectedFilesArray.forEach((file, index) => {
-                    const item = document.createElement('div');
-                    item.className = 'flex items-center justify-between bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-1.5 text-xs';
-
-                    // Dosya yolu klasörlü ise relativePath göster
-                    const fileName = file.name;
-                    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-
-                    item.innerHTML = `
-                        <div class="flex items-center gap-2 min-w-0">
-                            <i data-lucide="file" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i>
-                            <span class="truncate max-w-xs text-slate-300 font-medium">${escapeHtml(fileName)}</span>
-                        </div>
-                        <span class="text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 shrink-0">${fileSizeMB} MB</span>
-                    `;
-                    fileList.appendChild(item);
-                });
-                lucide.createIcons();
+            // Sunucu da doğruluyor; buradaki kontrol yalnızca erken geri bildirim.
+            if (selectedFiles.length > MAX_FILES) {
+                showError(`En fazla ${MAX_FILES} dosya seçebilirsin.`);
+                selectedFiles = selectedFiles.slice(0, MAX_FILES);
             }
+
+            const tooBig = selectedFiles.find(f => f.size > MAX_BYTES);
+            if (tooBig) {
+                showError(`"${tooBig.name}" 5 MB sınırını aşıyor.`);
+                selectedFiles = selectedFiles.filter(f => f.size <= MAX_BYTES);
+            }
+
+            list.innerHTML = selectedFiles.map(file => `
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg border border-line bg-sunken text-xs">
+                    <i data-lucide="image" class="w-3.5 h-3.5 text-ink-faint shrink-0"></i>
+                    <span class="text-ink-soft truncate">${escapeHtml(file.name)}</span>
+                    <span class="hint ml-auto shrink-0">${(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                </div>`).join('');
+
+            lucide.createIcons();
         }
 
-        // Form Gönderme İşlemi
+        function showError(message) {
+            const box = document.getElementById('error-message');
+            box.textContent = message;
+            box.classList.remove('hidden');
+        }
+
+        async function loadCategoryOptions() {
+            const categories = await getCategories();
+            const select = document.getElementById('topic-category');
+            select.innerHTML = `<option value="" disabled selected>Bir kategori seç</option>` +
+                categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+        }
+
         document.getElementById('create-topic-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const errorBox = document.getElementById('error-message');
-            const errorText = document.getElementById('error-text');
             const submitBtn = document.getElementById('submit-btn');
-
-            // Hata kutusunu gizle
+            const errorBox = document.getElementById('error-message');
             errorBox.classList.add('hidden');
 
             const formData = new FormData();
             formData.append('title', document.getElementById('topic-title').value);
             formData.append('categoryId', document.getElementById('topic-category').value);
             formData.append('content', document.getElementById('topic-content').value);
-            // Alan adı DTO ile birebir aynı olmalı; 'termsAccepted' sunucuya ulaşmıyordu.
             formData.append('isLegalTermsAccepted', document.getElementById('legal-terms').checked);
-
-            // Yazar sunucuda token'dan belirleniyor — istemci göndermiyor.
-
-            // Seçilen tüm dosyaları FormData'ya ekle
-            if (selectedFilesArray.length > 0) {
-                selectedFilesArray.forEach(file => {
-                    formData.append('files', file);
-                });
-            }
+            selectedFiles.forEach(file => formData.append('files', file));
 
             submitBtn.disabled = true;
-            submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Gönderiliyor...`;
+            submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Gönderiliyor…`;
             lucide.createIcons();
 
             try {
-                // Content-Type belirtilmiyor; tarayıcı multipart sınırını kendi ekler.
-                const response = await apiFetch('/api/topics', {
-                    method: 'POST',
-                    body: formData
-                });
+                // Content-Type verilmiyor; tarayıcı multipart sınırını kendi ekler.
+                const response = await apiFetch('/api/topics', { method: 'POST', body: formData });
 
                 if (response.ok) {
-                    window.location.href = 'index.html';
+                    const topic = await response.json();
+                    window.location.href = `topic-detail.html?id=${topic.id}`;
                 } else {
-                    errorText.innerText = await readError(response, 'Konu gönderilemedi. Lütfen bilgileri kontrol edin.');
-                    errorBox.classList.remove('hidden');
+                    showError(await readError(response, 'Konu gönderilemedi.'));
                 }
             } catch (error) {
                 console.error('Bağlantı hatası:', error);
-                errorText.innerText = 'Sunucuya bağlanılamadı. Lütfen tekrar deneyin.';
-                errorBox.classList.remove('hidden');
+                showError('Sunucuya bağlanılamadı.');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i> Konuyu Yayınla`;
@@ -217,10 +181,13 @@
             }
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // Konu açmak giriş gerektiriyor.
+        document.addEventListener('DOMContentLoaded', async () => {
             if (!requireLogin()) return;
-            renderUserNav();
+            renderHeader({ active: 'new' });
+            attachCounter('topic-title', 'title-counter', 200);
+            attachCounter('topic-content', 'content-counter', 20000);
+            await loadCategoryOptions();
+            lucide.createIcons();
         });
     </script>
 </body>

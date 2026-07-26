@@ -4,157 +4,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kullanıcı Profili - KORSANCIM</title>
+    <title>Profil — KORSANCIM</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%236366f1'/><text x='16' y='23' font-family='system-ui,sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'>K</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/theme.js"></script>
     <link rel="stylesheet" href="css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="js/app.js"></script>
 </head>
 
-<body
-    class="bg-slate-950 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.2),rgba(255,255,255,0))] min-h-screen text-slate-100 antialiased font-sans p-4 md:p-8">
+<body class="bg-base text-ink font-sans">
 
-    <header
-        class="max-w-4xl mx-auto bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 shadow-2xl rounded-2xl p-4 flex justify-between items-center mb-6">
-        <a href="index.html" class="flex items-center gap-3">
-            <div
-                class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-600/30">
-                K</div>
-            <span
-                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">KORSANCIM</span>
-        </a>
-        <a href="index.html" class="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1">
-            <i data-lucide="arrow-left" class="w-4 h-4"></i> Ana Sayfa
-        </a>
-    </header>
+    <div id="site-header"></div>
 
-    <main class="max-w-4xl mx-auto space-y-6">
-        <!-- PROFİL KART ÜSTÜ -->
-        <div class="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl">
+    <main class="max-w-3xl mx-auto px-4 py-6 space-y-4">
 
-            <!-- KAPAK FOTOĞRAFI (BANNER) -->
-            <div id="profile-banner"
-                class="h-44 bg-gradient-to-r from-indigo-900 via-slate-900 to-purple-950 relative border-b border-slate-800/80 bg-cover bg-center group/banner">
-                <!-- KAPAK DEĞİŞTİR BUTONU (Sadece kendi profilinde görünür) -->
+        <!-- PROFİL KARTI -->
+        <div class="card overflow-hidden">
+            <div id="profile-banner" class="h-32 bg-raised bg-cover bg-center relative border-b border-line">
                 <label id="btn-change-banner"
-                    class="hidden absolute top-3 right-3 bg-slate-950/70 hover:bg-slate-900 border border-slate-700 text-xs text-slate-200 font-semibold px-3 py-1.5 rounded-xl cursor-pointer transition flex items-center gap-1.5 backdrop-blur-md shadow-lg">
-                    <i data-lucide="camera" class="w-3.5 h-3.5 text-indigo-400"></i> Kapak Değiştir
-                    <input type="file" id="input-banner-file" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden"
-                        onchange="uploadImage('banner')">
+                    class="hidden absolute top-3 right-3 btn btn-ghost btn-sm cursor-pointer backdrop-blur">
+                    <i data-lucide="image" class="w-3.5 h-3.5"></i> Kapak
+                    <input type="file" id="input-banner-file" accept="image/jpeg,image/png,image/gif,image/webp"
+                        class="hidden" onchange="uploadImage('banner')">
                 </label>
             </div>
 
-            <div class="px-6 pb-6 relative">
-                <div class="flex justify-between items-end -mt-12 mb-4">
-
-                    <!-- AVATAR RESMİ VE DÜZENLEME KÖŞE BUTONU -->
-                    <div class="relative group/avatar">
+            <div class="px-5 pb-5">
+                <div class="flex items-end justify-between -mt-10 mb-4 gap-3">
+                    <div class="relative">
                         <div
-                            class="w-24 h-24 rounded-2xl bg-slate-950 border-4 border-slate-900 flex items-center justify-center overflow-hidden shadow-2xl shrink-0">
-                            <img id="profile-avatar" src="" alt="Avatar" class="w-full h-full object-cover">
+                            class="w-20 h-20 rounded-xl bg-sunken border-4 border-surface grid place-items-center overflow-hidden shrink-0">
+                            <img id="profile-avatar" src="" alt="" class="w-full h-full object-cover">
                         </div>
-
-                        <!-- PROFİL RESMİ DEĞİŞTİR BUTONU (Sağ alt köşe) -->
                         <label id="btn-change-avatar"
-                            class="hidden absolute -bottom-1 -right-1 bg-indigo-600 hover:bg-indigo-500 border-2 border-slate-900 text-white p-2 rounded-xl cursor-pointer transition shadow-lg flex items-center justify-center"
-                            title="Profil Resmini Değiştir">
+                            class="hidden absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-accent border-2 border-surface grid place-items-center cursor-pointer text-white"
+                            title="Profil resmini değiştir">
                             <i data-lucide="camera" class="w-3.5 h-3.5"></i>
-                            <input type="file" id="input-avatar-file" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden"
-                                onchange="uploadImage('avatar')">
+                            <input type="file" id="input-avatar-file" accept="image/jpeg,image/png,image/gif,image/webp"
+                                class="hidden" onchange="uploadImage('avatar')">
                         </label>
                     </div>
-
-                    <div id="profile-badge-area"></div>
+                    <div id="profile-badge-area" class="pb-1"></div>
                 </div>
 
-                <div class="space-y-1">
-                    <h1 id="profile-username" class="text-2xl font-extrabold text-white flex items-center gap-2">...
-                    </h1>
-                    <p id="profile-bio" class="text-xs text-slate-400 max-w-2xl leading-relaxed">Henüz bir biyografi
-                        eklenmemiş.</p>
-                </div>
+                <h1 id="profile-username" class="text-xl font-bold mb-1">…</h1>
+                <p id="profile-bio" class="text-[13px] text-ink-soft max-w-xl"></p>
 
-                <div
-                    class="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-slate-800/60 text-xs text-slate-400">
-                    <div class="flex items-center gap-1.5"><i data-lucide="calendar"
-                            class="w-3.5 h-3.5 text-indigo-400"></i> <span id="profile-joined">...</span></div>
-                    <div id="profile-github-wrap" class="hidden"><a id="profile-github" href="#" target="_blank"
-                            class="flex items-center gap-1 hover:text-white transition"><i data-lucide="github"
-                                class="w-3.5 h-3.5"></i> GitHub</a></div>
-                    <div id="profile-web-wrap" class="hidden"><a id="profile-web" href="#" target="_blank"
-                            class="flex items-center gap-1 hover:text-white transition"><i data-lucide="globe"
-                                class="w-3.5 h-3.5"></i> Web Sitesi</a></div>
+                <div class="flex flex-wrap items-center gap-4 mt-4 pt-4 divider text-xs text-ink-faint">
+                    <span class="flex items-center gap-1.5">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                        <span id="profile-joined">…</span>
+                    </span>
+                    <a id="profile-github" href="#" target="_blank" rel="noopener"
+                        class="hidden items-center gap-1.5 hover:text-ink transition">
+                        <i data-lucide="github" class="w-3.5 h-3.5"></i> GitHub
+                    </a>
+                    <a id="profile-web" href="#" target="_blank" rel="noopener"
+                        class="hidden items-center gap-1.5 hover:text-ink transition">
+                        <i data-lucide="globe" class="w-3.5 h-3.5"></i> Web sitesi
+                    </a>
                 </div>
             </div>
         </div>
 
-        <!-- İSTATİSTİKLER -->
-        <div class="grid grid-cols-2 gap-4">
-            <div class="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3">
-                <div
-                    class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                    <i data-lucide="file-text" class="w-5 h-5"></i></div>
-                <div>
-                    <div id="stat-topics-count" class="text-lg font-bold text-white">0</div>
-                    <div class="text-[11px] text-slate-500 font-medium">Açılan Konular</div>
-                </div>
+        <!-- İSTATİSTİK -->
+        <div class="grid grid-cols-2 gap-3">
+            <div class="card p-4">
+                <div id="stat-topics-count" class="text-xl font-bold text-ink">0</div>
+                <div class="hint mt-0.5">Açılan konu</div>
             </div>
-            <div class="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3">
-                <div
-                    class="w-10 h-10 rounded-xl bg-purple500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
-                    <i data-lucide="message-square" class="w-5 h-5"></i></div>
-                <div>
-                    <div id="stat-comments-count" class="text-lg font-bold text-white">0</div>
-                    <div class="text-[11px] text-slate-500 font-medium">Yazılan Yanıtlar</div>
-                </div>
+            <div class="card p-4">
+                <div id="stat-comments-count" class="text-xl font-bold text-ink">0</div>
+                <div class="hint mt-0.5">Yazılan yanıt</div>
             </div>
         </div>
 
         <!-- SEKMELER -->
         <div>
-            <div class="flex border-b border-slate-800/80 gap-2 mb-4">
-                <button onclick="switchTab('topics')" id="tab-btn-topics"
-                    class="px-4 py-2 text-xs font-semibold border-b-2 border-indigo-500 text-indigo-400 transition">Konuları</button>
-                <button onclick="switchTab('comments')" id="tab-btn-comments"
-                    class="px-4 py-2 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-200 transition">Yanıtları</button>
-                <button onclick="switchTab('settings')" id="tab-btn-settings"
-                    class="hidden px-4 py-2 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-200 transition ml-auto flex items-center gap-1">
-                    <i data-lucide="settings" class="w-3.5 h-3.5"></i> Profili & Ayarları Düzenle
+            <div class="flex items-center gap-1 border-b border-line mb-3 pb-2 overflow-x-auto">
+                <button onclick="switchTab('topics')" id="tab-btn-topics" class="tab" aria-selected="true">Konular</button>
+                <button onclick="switchTab('comments')" id="tab-btn-comments" class="tab"
+                    aria-selected="false">Yanıtlar</button>
+                <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab hidden ml-auto"
+                    aria-selected="false">
+                    <i data-lucide="settings" class="w-3.5 h-3.5"></i> Ayarlar
                 </button>
             </div>
 
-            <div id="tab-content-topics" class="space-y-3"></div>
-            <div id="tab-content-comments" class="space-y-3 hidden"></div>
+            <div id="tab-content-topics" class="space-y-2"></div>
+            <div id="tab-content-comments" class="space-y-2 hidden"></div>
 
-            <!-- METİNSEL AYARLAR FORMU -->
-            <div id="tab-content-settings" class="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-6 hidden">
-                <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                    <i data-lucide="sliders" class="w-4 h-4 text-indigo-400"></i> Biyografi & Link Ayarları
-                </h3>
+            <div id="tab-content-settings" class="card p-5 hidden">
+                <h3 class="text-sm font-bold text-ink mb-4">Profil bilgileri</h3>
                 <form id="settings-form" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Biyografi</label>
-                        <textarea id="set-bio" rows="3" placeholder="Kendinden bahset..."
-                            class="w-full bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"></textarea>
+                        <div class="flex items-baseline gap-3 mb-1.5">
+                            <label class="label mb-0" for="set-bio">Biyografi</label>
+                            <span id="bio-counter" class="hint ml-auto"></span>
+                        </div>
+                        <textarea id="set-bio" rows="3" maxlength="500" class="input"
+                            placeholder="Kendinden bahset…"></textarea>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">GitHub URL</label>
-                            <input type="url" id="set-github" placeholder="https://github.com/kullaniciadi"
-                                class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                            <label class="label" for="set-github">GitHub</label>
+                            <input type="url" id="set-github" class="input" placeholder="https://github.com/kullanici">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Web Sitesi</label>
-                            <input type="url" id="set-web" placeholder="https://site.com"
-                                class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                            <label class="label" for="set-web">Web sitesi</label>
+                            <input type="url" id="set-web" class="input" placeholder="https://site.com">
                         </div>
                     </div>
 
-                    <div class="flex justify-end pt-2">
-                        <button type="submit"
-                            class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-lg shadow-indigo-600/25">
-                            <i data-lucide="check" class="w-3.5 h-3.5"></i> Bilgileri Kaydet
+                    <div id="settings-alert" class="hidden alert"></div>
+
+                    <div class="flex justify-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i data-lucide="check" class="w-4 h-4"></i> Kaydet
                         </button>
                     </div>
                 </form>
@@ -162,42 +131,64 @@
         </div>
     </main>
 
+    <footer class="max-w-3xl mx-auto px-4 py-8 text-center">
+        <p class="hint">KORSANCIM · anonim topluluk forumu</p>
+    </footer>
+
     <script>
-        lucide.createIcons();
-
-        const DEFAULT_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="%23818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
-
-        const urlParams = new URLSearchParams(window.location.search);
-        let targetUser = urlParams.get('u');
-
+        let targetUser = new URLSearchParams(window.location.search).get('u');
         const myUsername = getUsername();
 
         if (!targetUser) targetUser = myUsername;
 
-        const isMyProfile = myUsername && targetUser && myUsername.toLowerCase() === targetUser.toLowerCase();
+        const isMyProfile = myUsername && targetUser &&
+            myUsername.toLowerCase() === targetUser.toLowerCase();
 
         async function loadProfile() {
-            if (!targetUser) {
-                window.location.href = 'auth.html';
-                return;
-            }
+            if (!targetUser) { window.location.href = 'auth.html'; return; }
 
             try {
                 const res = await fetch(`/api/users/profile/${encodeURIComponent(targetUser)}`);
+
                 if (!res.ok) {
-                    document.getElementById('profile-bio').innerText =
-                        await readError(res, 'Profil yüklenemedi.');
+                    document.getElementById('profile-username').textContent = 'Kullanıcı bulunamadı';
+                    document.getElementById('profile-bio').textContent =
+                        await readError(res, 'Böyle bir kullanıcı yok.');
                     return;
                 }
-                const data = await res.json();
 
-                // Profil ve Kapak Fotoğrafı Yüklemesi
+                const data = await res.json();
+                document.title = `${data.username} — KORSANCIM`;
+
                 document.getElementById('profile-avatar').src = data.avatarUrl || DEFAULT_AVATAR;
                 if (data.bannerUrl) {
-                    document.getElementById('profile-banner').style.backgroundImage = `url("${encodeURI(data.bannerUrl)}")`;
+                    document.getElementById('profile-banner').style.backgroundImage =
+                        `url("${encodeURI(data.bannerUrl)}")`;
                 }
 
-                // Kendi profilimizse "Değiştir" butonlarını açalım
+                document.getElementById('profile-username').innerHTML = renderUserName(data.username);
+                document.getElementById('profile-badge-area').innerHTML = renderBadge(data.username, 'md');
+                document.getElementById('profile-bio').textContent = data.bio || 'Henüz biyografi eklenmemiş.';
+                document.getElementById('profile-joined').textContent =
+                    new Date(data.createdAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' }) + ' tarihinde katıldı';
+
+                // javascript: gibi şemaları engelle — sunucu da doğruluyor.
+                const safeLink = (url) => /^https?:\/\//i.test(url || '') ? url : null;
+
+                const github = safeLink(data.githubUrl);
+                if (github) {
+                    const el = document.getElementById('profile-github');
+                    el.href = github;
+                    el.classList.replace('hidden', 'flex');
+                }
+
+                const website = safeLink(data.websiteUrl);
+                if (website) {
+                    const el = document.getElementById('profile-web');
+                    el.href = website;
+                    el.classList.replace('hidden', 'flex');
+                }
+
                 if (isMyProfile) {
                     document.getElementById('btn-change-avatar').classList.remove('hidden');
                     document.getElementById('btn-change-banner').classList.remove('hidden');
@@ -205,107 +196,91 @@
                     document.getElementById('set-bio').value = data.bio || '';
                     document.getElementById('set-github').value = data.githubUrl || '';
                     document.getElementById('set-web').value = data.websiteUrl || '';
+                    attachCounter('set-bio', 'bio-counter', 500);
                 }
 
-                document.getElementById('profile-username').innerHTML = renderUserName(data.username);
-                document.getElementById('profile-badge-area').innerHTML = renderBadge(data.username, 'md');
+                document.getElementById('stat-topics-count').textContent = data.topics?.length || 0;
+                document.getElementById('stat-comments-count').textContent = data.comments?.length || 0;
 
-                document.getElementById('profile-bio').innerText = data.bio || 'Henüz bir biyografi eklenmemiş.';
-                const joinedDate = new Date(data.createdAt || Date.now()).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
-                document.getElementById('profile-joined').innerText = `${joinedDate} tarihinde katıldı`;
-
-                // javascript: gibi şemaları engelle — sunucu da doğruluyor,
-                // bu ikinci savunma katmanı.
-                const safeLink = (url) => /^https?:\/\//i.test(url || '') ? url : null;
-
-                const githubUrl = safeLink(data.githubUrl);
-                if (githubUrl) {
-                    document.getElementById('profile-github').href = githubUrl;
-                    document.getElementById('profile-github-wrap').classList.remove('hidden');
-                }
-
-                const websiteUrl = safeLink(data.websiteUrl);
-                if (websiteUrl) {
-                    document.getElementById('profile-web').href = websiteUrl;
-                    document.getElementById('profile-web-wrap').classList.remove('hidden');
-                }
-
-                document.getElementById('stat-topics-count').innerText = data.topics ? data.topics.length : 0;
-                document.getElementById('stat-comments-count').innerText = data.comments ? data.comments.length : 0;
-
-                const topicsContainer = document.getElementById('tab-content-topics');
-                if (!data.topics || data.topics.length === 0) {
-                    topicsContainer.innerHTML = `<div class="p-6 bg-slate-900/30 border border-slate-800/80 rounded-2xl text-xs text-slate-500 text-center">Henüz hiç konu açılmamış.</div>`;
-                } else {
-                    topicsContainer.innerHTML = data.topics.map(t => `
-                        <a href="topic-detail.html?id=${t.id}" class="block bg-slate-900/40 border border-slate-800/80 hover:border-indigo-500/40 p-4 rounded-2xl transition">
-                            <h4 class="text-sm font-bold text-slate-200 hover:text-indigo-400 transition mb-1">${escapeHtml(t.title)}</h4>
-                            <p class="text-xs text-slate-400 line-clamp-1">${escapeHtml(t.content)}</p>
-                        </a>`).join('');
-                }
-
-                const commentsContainer = document.getElementById('tab-content-comments');
-                if (!data.comments || data.comments.length === 0) {
-                    commentsContainer.innerHTML = `<div class="p-6 bg-slate-900/30 border border-slate-800/80 rounded-2xl text-xs text-slate-500 text-center">Henüz hiç yanıt yazılmamış.</div>`;
-                } else {
-                    commentsContainer.innerHTML = data.comments.map(c => `
-                        <div class="bg-slate-900/40 border border-slate-800/80 p-4 rounded-2xl space-y-1">
-                            <p class="text-xs text-slate-300">${escapeHtml(c.content)}</p>
-                            <a href="topic-detail.html?id=${c.topicId}" class="inline-block text-[11px] text-indigo-400 hover:underline">Konuyu Gör →</a>
-                        </div>`).join('');
-                }
+                renderTopics(data.topics || []);
+                renderComments(data.comments || []);
 
                 lucide.createIcons();
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error('Profil yükleme hatası:', err);
+            }
         }
 
-        // FOTOĞRAF ANINDA YÜKLEME FONKSİYONU
+        function emptyCard(message) {
+            return `<div class="card p-8 text-center"><p class="text-sm text-ink-soft">${escapeHtml(message)}</p></div>`;
+        }
+
+        function renderTopics(topics) {
+            const container = document.getElementById('tab-content-topics');
+
+            container.innerHTML = topics.length === 0
+                ? emptyCard('Henüz konu açılmamış.')
+                : topics.map(t => `
+                    <a href="topic-detail.html?id=${t.id}" class="card card-hover p-4 block">
+                        <div class="flex items-center gap-2 mb-1.5 text-xs">
+                            <span class="chip chip-accent">${escapeHtml(t.categoryName)}</span>
+                            <span class="text-ink-faint ml-auto">${escapeHtml(timeAgo(t.createdAt))}${t.updatedAt ? ' · düzenlendi' : ''}</span>
+                        </div>
+                        <h4 class="text-sm font-semibold text-ink mb-1">${escapeHtml(t.title)}</h4>
+                        <p class="text-[13px] text-ink-soft clamp-2">${escapeHtml(t.content)}</p>
+                        <div class="flex items-center gap-1 mt-2.5 pt-2.5 divider text-xs text-ink-faint">
+                            <i data-lucide="heart" class="w-3 h-3"></i> ${t.likeCount}
+                        </div>
+                    </a>`).join('');
+        }
+
+        function renderComments(comments) {
+            const container = document.getElementById('tab-content-comments');
+
+            container.innerHTML = comments.length === 0
+                ? emptyCard('Henüz yanıt yazılmamış.')
+                : comments.map(c => `
+                    <a href="topic-detail.html?id=${c.topicId}" class="card card-hover p-4 block">
+                        <p class="text-[13px] text-ink-soft">${escapeHtml(c.content)}</p>
+                        <div class="flex items-center gap-2 mt-2.5 pt-2.5 divider text-xs text-ink-faint">
+                            <i data-lucide="corner-down-right" class="w-3 h-3 shrink-0"></i>
+                            <span class="truncate">${escapeHtml(c.topicTitle)}</span>
+                            <span class="ml-auto shrink-0">${escapeHtml(timeAgo(c.createdAt))}</span>
+                        </div>
+                    </a>`).join('');
+        }
+
+        function switchTab(tab) {
+            ['topics', 'comments', 'settings'].forEach(name => {
+                document.getElementById(`tab-content-${name}`).classList.toggle('hidden', name !== tab);
+                document.getElementById(`tab-btn-${name}`).setAttribute('aria-selected', name === tab);
+            });
+        }
+
         async function uploadImage(type) {
             const input = document.getElementById(type === 'avatar' ? 'input-avatar-file' : 'input-banner-file');
-            if (!input.files || !input.files[0]) return;
+            if (!input.files?.length) return;
 
             // Hedef kullanıcı sunucuda token'dan belirleniyor.
             const formData = new FormData();
             formData.append(type === 'avatar' ? 'avatarFile' : 'bannerFile', input.files[0]);
 
             try {
-                const res = await apiFetch('/api/users/profile', {
-                    method: 'PUT',
-                    body: formData
-                });
-
+                const res = await apiFetch('/api/users/profile', { method: 'PUT', body: formData });
                 if (res.ok) {
-                    loadProfile(); // Anında resmi sayfada güncelle
+                    loadProfile();
                 } else {
                     alert(await readError(res, 'Görsel yüklenemedi.'));
                 }
-            } catch (err) { console.error(err); }
-        }
-
-        function switchTab(tab) {
-            document.getElementById('tab-content-topics').classList.add('hidden');
-            document.getElementById('tab-content-comments').classList.add('hidden');
-            document.getElementById('tab-content-settings').classList.add('hidden');
-
-            document.getElementById('tab-btn-topics').className = 'px-4 py-2 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-200 transition';
-            document.getElementById('tab-btn-comments').className = 'px-4 py-2 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-200 transition';
-            document.getElementById('tab-btn-settings').className = 'px-4 py-2 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-200 transition ml-auto flex items-center gap-1';
-
-            if (tab === 'topics') {
-                document.getElementById('tab-content-topics').classList.remove('hidden');
-                document.getElementById('tab-btn-topics').className = 'px-4 py-2 text-xs font-semibold border-b-2 border-indigo-500 text-indigo-400 transition';
-            } else if (tab === 'comments') {
-                document.getElementById('tab-content-comments').classList.remove('hidden');
-                document.getElementById('tab-btn-comments').className = 'px-4 py-2 text-xs font-semibold border-b-2 border-indigo-500 text-indigo-400 transition';
-            } else if (tab === 'settings') {
-                document.getElementById('tab-content-settings').classList.remove('hidden');
-                document.getElementById('tab-btn-settings').className = 'px-4 py-2 text-xs font-semibold border-b-2 border-indigo-500 text-indigo-400 transition ml-auto flex items-center gap-1';
+            } catch (err) {
+                console.error(err);
             }
         }
 
-        // BİYOGRAFİ VE LİNK GÜNCELLEME
         document.getElementById('settings-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const alertBox = document.getElementById('settings-alert');
+            alertBox.classList.add('hidden');
 
             const formData = new FormData();
             formData.append('bio', document.getElementById('set-bio').value);
@@ -313,23 +288,23 @@
             formData.append('websiteUrl', document.getElementById('set-web').value);
 
             try {
-                const res = await apiFetch('/api/users/profile', {
-                    method: 'PUT',
-                    body: formData
-                });
+                const res = await apiFetch('/api/users/profile', { method: 'PUT', body: formData });
 
                 if (res.ok) {
-                    alert('Profil bilgilerin güncellendi!');
+                    alertBox.textContent = 'Profil güncellendi.';
+                    alertBox.className = 'alert alert-ok';
                     loadProfile();
-                    switchTab('topics');
                 } else {
-                    alert(await readError(res, 'Profil güncellenemedi.'));
+                    alertBox.textContent = await readError(res, 'Profil güncellenemedi.');
+                    alertBox.className = 'alert alert-bad';
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error(err);
+            }
         });
 
         document.addEventListener('DOMContentLoaded', () => {
-            renderUserNav();
+            renderHeader({ active: isMyProfile ? 'profile' : '' });
             loadProfile();
         });
     </script>

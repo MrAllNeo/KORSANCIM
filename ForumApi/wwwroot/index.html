@@ -4,220 +4,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KORSANCIM - Anonim Topluluk</title>
+    <title>KORSANCIM — Anonim Topluluk</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%236366f1'/><text x='16' y='23' font-family='system-ui,sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'>K</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/theme.js"></script>
     <link rel="stylesheet" href="css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="js/app.js"></script>
 </head>
 
-<body
-    class="bg-slate-950 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.2),rgba(255,255,255,0))] min-h-screen text-slate-100 antialiased font-sans p-4 md:p-8">
+<body class="bg-base text-ink font-sans">
 
-    <header
-        class="max-w-4xl mx-auto bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 shadow-2xl rounded-2xl p-4 flex justify-between items-center mb-6">
-        <a href="index.html" class="flex items-center gap-3">
-            <div
-                class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-600/30">
-                K</div>
-            <span
-                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">KORSANCIM</span>
-        </a>
+    <div id="site-header"></div>
 
-        <div class="flex items-center gap-3">
-            <a href="create-topic.html"
-                class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition shadow-lg shadow-indigo-600/25 flex items-center gap-1.5">
-                <i data-lucide="plus" class="w-4 h-4"></i> Yeni Konu
-            </a>
+    <main class="max-w-3xl mx-auto px-4 py-6">
 
-            <!-- Dinamik Kullanıcı / Giriş Alanı -->
-            <div id="user-nav-area"></div>
-        </div>
-    </header>
-
-    <main class="max-w-4xl mx-auto">
-        <!-- ARAMA ÇUBUĞU -->
-        <div class="mb-4 relative">
-            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                <i data-lucide="search" class="w-4 h-4"></i>
-            </div>
+        <!-- ARAMA -->
+        <div class="relative mb-4">
+            <i data-lucide="search"
+                class="w-4 h-4 text-ink-faint absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
             <input type="text" id="search-input" autocomplete="off"
-                placeholder="Konularda, yanıtlarda ve kullanıcılarda ara..."
-                class="w-full bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl pl-10 pr-10 py-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition shadow-xl">
+                placeholder="Konularda, yanıtlarda ve kullanıcılarda ara…" class="input pl-10 pr-10">
             <button id="search-clear" onclick="clearSearch()" title="Aramayı temizle"
-                class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-200 transition">
+                class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink transition p-1.5">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
 
-        <!-- KATEGORİ FİLTRELEME BUTONLARI -->
-        <div id="category-bar" class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none">
-            <button onclick="filterCategory(0, this)"
-                class="cat-btn active-cat bg-indigo-600 text-white border border-indigo-500 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 shadow-lg shadow-indigo-600/20">
-                <i data-lucide="layers" class="w-3.5 h-3.5"></i> Tüm Konular
-            </button>
-            <button onclick="filterCategory(1, this)"
-                class="cat-btn bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-slate-800 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5">
-                <i data-lucide="code" class="w-3.5 h-3.5 text-indigo-400"></i> Yazılım & Kodlama
-            </button>
-            <button onclick="filterCategory(2, this)"
-                class="cat-btn bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-slate-800 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5">
-                <i data-lucide="cpu" class="w-3.5 h-3.5 text-indigo-400"></i> Donanım & Sistem
-            </button>
-            <button onclick="filterCategory(3, this)"
-                class="cat-btn bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-slate-800 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5">
-                <i data-lucide="coffee" class="w-3.5 h-3.5 text-indigo-400"></i> Geyik & Sohbet
-            </button>
+        <!-- KATEGORİ SEKMELERİ -->
+        <div id="category-bar" role="tablist" aria-label="Kategoriler"
+            class="flex items-center gap-1 overflow-x-auto pb-3 mb-4 -mx-1 px-1">
         </div>
 
-        <!-- KONULAR LİSTESİ -->
-        <div id="topic-list" class="space-y-4">
-            <div class="text-center py-12 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
-                <p class="text-slate-400 text-xs animate-pulse">Konular yükleniyor...</p>
-            </div>
-        </div>
+        <!-- KONU LİSTESİ -->
+        <div id="topic-list" class="space-y-2"></div>
 
-        <!-- ARAMA SONUÇLARI (arama yapılınca konu listesinin yerini alır) -->
+        <!-- ARAMA SONUÇLARI -->
         <div id="search-results" class="hidden space-y-6"></div>
+
     </main>
 
+    <footer class="max-w-3xl mx-auto px-4 py-8 text-center">
+        <p class="hint">KORSANCIM · anonim topluluk forumu</p>
+    </footer>
+
     <script>
-        lucide.createIcons();
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        const searchClear = document.getElementById('search-clear');
+        const topicList = document.getElementById('topic-list');
+        const categoryBar = document.getElementById('category-bar');
 
         let currentCategoryId = 0;
-        const categoryNames = {
-            1: 'Yazılım & Kodlama',
-            2: 'Donanım & Sistem',
-            3: 'Geyik & Sohbet'
-        };
+        let currentPage = 1;
+        let hasMorePages = false;
+        let likedTopicIds = new Set();
 
-        // Konuları API'den Çekme
-        async function fetchTopics(categoryId = 0) {
-            const topicListContainer = document.getElementById('topic-list');
-            topicListContainer.innerHTML = `
-            <div class="text-center py-12 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
-                <p class="text-slate-400 text-xs animate-pulse">Konular getiriliyor...</p>
-            </div>`;
+        // ── Kategori sekmeleri (API'den) ────────────────────────
+        async function renderCategoryBar() {
+            const categories = await getCategories();
+
+            const tab = (id, label, count) => `
+                <button role="tab" aria-selected="${currentCategoryId === id}"
+                        onclick="filterCategory(${id})" class="tab">
+                    ${escapeHtml(label)}${count !== null ? `<span class="text-ink-faint ml-1.5">${count}</span>` : ''}
+                </button>`;
+
+            const total = categories.reduce((sum, c) => sum + c.topicCount, 0);
+
+            categoryBar.innerHTML =
+                tab(0, 'Tümü', total) +
+                categories.map(c => tab(c.id, c.name, c.topicCount)).join('');
+        }
+
+        function filterCategory(id) {
+            currentCategoryId = id;
+            renderCategoryBar();
+            fetchTopics(id, 1, false);
+        }
+
+        // ── Konu listesi ────────────────────────────────────────
+        function skeletonList(n = 5) {
+            return Array.from({ length: n }, () => `
+                <div class="card p-4 space-y-3">
+                    <div class="skeleton h-3 w-24"></div>
+                    <div class="skeleton h-4 w-3/4"></div>
+                    <div class="skeleton h-3 w-full"></div>
+                </div>`).join('');
+        }
+
+        async function fetchTopics(categoryId = 0, page = 1, append = false) {
+            if (!append) {
+                currentPage = 1;
+                topicList.innerHTML = skeletonList();
+            }
 
             try {
-                let url = '/api/topics';
-                if (categoryId > 0) {
-                    url += `?categoryId=${categoryId}`;
-                }
+                const params = new URLSearchParams({ page, pageSize: 20 });
+                if (categoryId > 0) params.set('categoryId', categoryId);
 
-                const response = await fetch(url);
-                const topics = await response.json();
+                // apiFetch kullanıyoruz: girişliysek token gider ve sunucu
+                // her konu için likedByMe alanını da doldurur (tek sorgu).
+                const response = await apiFetch(`/api/topics?${params}`);
+                const data = await response.json();
 
-                if (!topics || topics.length === 0) {
-                    topicListContainer.innerHTML = `
-                    <div class="text-center py-12 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
-                        <p class="text-slate-400 text-sm">Bu kategoride henüz hiç konu açılmamış.</p>
-                    </div>`;
+                const topics = data.items || [];
+                currentPage = data.page;
+                hasMorePages = data.hasMore;
+
+                topics.forEach(t => t.likedByMe ? likedTopicIds.add(t.id) : likedTopicIds.delete(t.id));
+
+                if (topics.length === 0 && !append) {
+                    topicList.innerHTML = `
+                        <div class="card p-10 text-center">
+                            <i data-lucide="inbox" class="w-8 h-8 text-ink-faint mx-auto mb-3"></i>
+                            <p class="text-sm text-ink-soft">Bu kategoride henüz konu yok.</p>
+                            <a href="create-topic.html" class="btn btn-ghost btn-sm mt-4">İlk konuyu sen aç</a>
+                        </div>`;
+                    lucide.createIcons();
                     return;
                 }
 
-                topicListContainer.innerHTML = topics.map(topic => {
-                    const hasFiles = topic.fileUrls && topic.fileUrls.length > 0;
-                    const fileBadge = hasFiles
-                        ? `<span class="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">
-                            <i data-lucide="paperclip" class="w-3 h-3"></i> ${topic.fileUrls.length} Ek
-                           </span>`
-                        : '';
+                const html = topics.map(renderTopicCard).join('');
+                document.getElementById('load-more-wrap')?.remove();
 
-                    const categoryName = categoryNames[topic.categoryId] || `Kategori #${topic.categoryId}`;
+                if (append) {
+                    topicList.insertAdjacentHTML('beforeend', html);
+                } else {
+                    topicList.innerHTML = html;
+                }
 
-                    const formattedDate = formatDate(topic.createdAt);
-                    const authorName = topic.authorUsername || 'Anonim';
-                    const safeTitle = escapeHtml(topic.title);
-                    const safeContent = escapeHtml(topic.content);
-
-                    return `
-                    <article class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 hover:border-slate-700/80 transition rounded-2xl p-5 shadow-lg group">
-                        <div class="flex items-start justify-between gap-4 mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-lg">
-                                    ${categoryName}
-                                </span>
-                                ${fileBadge}
-                            </div>
-                            <span class="text-xs text-slate-500">${formattedDate}</span>
-                        </div>
-
-                        <a href="topic-detail.html?id=${topic.id}" class="block">
-                            <h2 class="text-base font-bold text-slate-100 group-hover:text-indigo-400 transition mb-2">
-                                ${safeTitle}
-                            </h2>
-                            <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">
-                                ${safeContent}
-                            </p>
-                        </a>
-
-                        <div class="flex items-center justify-between pt-3 border-t border-slate-800/60 text-xs text-slate-400">
-                            <!-- TIKLANABİLİR YAZAR PROFİL LİNKİ -->
-                            <a href="profile.html?u=${escapeAttr(authorName)}" class="flex items-center gap-2 hover:text-indigo-400 transition group/user">
-                                <div class="w-6 h-6 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-bold text-indigo-400 group-hover/user:scale-110 transition">
-                                    ${escapeHtml(authorName.charAt(0).toUpperCase())}
-                                </div>
-                                ${renderUserName(authorName, 'text-xs')}
-                                ${renderBadge(authorName)}
-                            </a>
-
-                            <div class="flex items-center gap-3">
-                                <!-- LIKE BUTONU -->
-                                <button onclick="likeTopic(${topic.id}, this)" class="flex items-center gap-1 hover:text-rose-400 transition bg-slate-950/40 border border-slate-800 hover:border-rose-500/30 px-2.5 py-1 rounded-lg">
-                                    <i data-lucide="heart" class="w-3.5 h-3.5 text-rose-500"></i>
-                                    <span class="like-count font-semibold">${topic.likeCount || 0}</span>
-                                </button>
-
-                                <a href="topic-detail.html?id=${topic.id}" class="flex items-center gap-1 hover:text-white transition bg-indigo-600/10 border border-indigo-500/20 text-indigo-300 px-2.5 py-1 rounded-lg">
-                                    <i data-lucide="message-square" class="w-3.5 h-3.5"></i> Yanıtla
-                                </a>
-                            </div>
-                        </div>
-                    </article>
-                    `;
-                }).join('');
+                if (hasMorePages) {
+                    const remaining = data.total - currentPage * data.pageSize;
+                    topicList.insertAdjacentHTML('beforeend', `
+                        <div id="load-more-wrap" class="pt-3 text-center">
+                            <button id="load-more-btn" onclick="loadMoreTopics()" class="btn btn-ghost">
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                Daha fazla <span class="text-ink-faint">(${remaining})</span>
+                            </button>
+                        </div>`);
+                }
 
                 lucide.createIcons();
-
             } catch (error) {
-                console.error('Hata:', error);
+                console.error('Konular yüklenemedi:', error);
+                topicList.innerHTML = `<div class="alert alert-bad">Konular yüklenemedi. Sunucu çalışıyor mu?</div>`;
             }
         }
 
-        async function likeTopic(topicId, btnElement) {
-            if (!isLoggedIn()) {
-                window.location.href = 'auth.html';
-                return;
+        function renderTopicCard(topic) {
+            const author = topic.authorUsername;
+            const liked = likedTopicIds.has(topic.id);
+            const attachment = topic.fileUrls?.length
+                ? `<span class="chip"><i data-lucide="paperclip" class="w-3 h-3"></i>${topic.fileUrls.length}</span>`
+                : '';
+
+            return `
+            <article class="card card-hover p-4">
+                <div class="flex items-center gap-2 mb-2 text-xs">
+                    <span class="chip chip-accent">${escapeHtml(topic.categoryName || categoryName(topic.categoryId))}</span>
+                    ${attachment}
+                    <span class="text-ink-faint ml-auto" title="${escapeHtml(formatDate(topic.createdAt))}">
+                        ${escapeHtml(timeAgo(topic.createdAt))}${topic.updatedAt ? ' · düzenlendi' : ''}
+                    </span>
+                </div>
+
+                <a href="topic-detail.html?id=${topic.id}" class="block group">
+                    <h2 class="text-[15px] font-semibold text-ink group-hover:text-accent-soft transition mb-1.5">
+                        ${escapeHtml(topic.title)}
+                    </h2>
+                    <p class="text-[13px] text-ink-soft clamp-2">${escapeHtml(topic.content)}</p>
+                </a>
+
+                <div class="flex items-center gap-2 mt-3 pt-3 divider text-xs flex-wrap">
+                    <a href="profile.html?u=${escapeAttr(author)}" class="flex items-center gap-1.5 hover:opacity-80 transition">
+                        ${renderUserName(author, 'text-[13px]')}
+                    </a>
+                    ${renderBadge(author)}
+
+                    <div class="flex items-center gap-1 ml-auto">
+                        <button onclick="likeTopic(${topic.id}, this)"
+                            class="btn btn-quiet btn-sm ${liked ? 'text-bad' : ''}" aria-pressed="${liked}">
+                            <i data-lucide="heart" class="w-3.5 h-3.5" ${liked ? 'fill="currentColor"' : ''}></i>
+                            <span class="like-count">${topic.likeCount || 0}</span>
+                        </button>
+                        <a href="topic-detail.html?id=${topic.id}" class="btn btn-quiet btn-sm">
+                            <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+                            ${topic.commentCount || 0}
+                        </a>
+                    </div>
+                </div>
+            </article>`;
+        }
+
+        async function loadMoreTopics() {
+            const btn = document.getElementById('load-more-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Yükleniyor…`;
+                lucide.createIcons();
             }
+            await fetchTopics(currentCategoryId, currentPage + 1, true);
+        }
+
+        async function likeTopic(topicId, btn) {
+            if (!isLoggedIn()) { window.location.href = 'auth.html'; return; }
 
             try {
                 const res = await apiFetch(`/api/topics/${topicId}/like`, { method: 'POST' });
+                if (!res.ok) return;
 
-                if (res.ok) {
-                    const data = await res.json();
-                    const countSpan = btnElement.querySelector('.like-count');
-                    if (countSpan) countSpan.innerText = data.likes;
+                const data = await res.json();
+                btn.querySelector('.like-count').textContent = data.likes;
+                btn.classList.toggle('text-bad', data.isLiked);
+                btn.setAttribute('aria-pressed', data.isLiked);
 
-                    // Eğer beğendiyse kırmızı yap, beğeniyi geri aldıysa eski haline getir
-                    if (data.isLiked) {
-                        btnElement.classList.add('text-rose-400', 'border-rose-500/50');
-                    } else {
-                        btnElement.classList.remove('text-rose-400', 'border-rose-500/50');
-                    }
-                }
+                const icon = btn.querySelector('[data-lucide], svg');
+                if (data.isLiked) { likedTopicIds.add(topicId); } else { likedTopicIds.delete(topicId); }
+                if (icon) icon.setAttribute('fill', data.isLiked ? 'currentColor' : 'none');
             } catch (err) {
-                console.error('Like Hatası:', err);
+                console.error('Beğeni hatası:', err);
             }
-        }        // ── ARAMA ───────────────────────────────────────────────
-        const searchInput = document.getElementById('search-input');
-        const searchResults = document.getElementById('search-results');
-        const topicList = document.getElementById('topic-list');
-        const categoryBar = document.getElementById('category-bar');
-        const searchClear = document.getElementById('search-clear');
+        }
 
+        // ── Arama ───────────────────────────────────────────────
         let searchTimer = null;
-        let searchSeq = 0; // geç dönen eski isteğin yenisini ezmesini önler
+        let searchSeq = 0;
 
         searchInput.addEventListener('input', () => {
             clearTimeout(searchTimer);
@@ -248,49 +261,42 @@
         async function runSearch() {
             const query = searchInput.value.trim();
 
-            if (query.length === 0) {
-                showBrowseMode();
-                return;
-            }
-
+            if (query.length === 0) { showBrowseMode(); return; }
             showSearchMode();
 
             if (query.length < 2) {
-                searchResults.innerHTML = emptyBox('Aramak için en az 2 karakter yazın.');
+                searchResults.innerHTML = noticeBox('Aramak için en az 2 karakter yazın.');
                 return;
             }
 
             const seq = ++searchSeq;
-            searchResults.innerHTML = emptyBox('Aranıyor...', true);
+            searchResults.innerHTML = skeletonList(3);
 
             try {
                 const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=20`);
-                if (seq !== searchSeq) return; // daha yeni bir arama başladı
+                if (seq !== searchSeq) return;
 
                 if (!res.ok) {
-                    searchResults.innerHTML = emptyBox(await readError(res, 'Arama yapılamadı.'));
+                    searchResults.innerHTML = noticeBox(await readError(res, 'Arama yapılamadı.'));
                     return;
                 }
-
                 renderSearchResults(await res.json());
             } catch (err) {
                 if (seq !== searchSeq) return;
                 console.error('Arama hatası:', err);
-                searchResults.innerHTML = emptyBox('Sunucuya bağlanılamadı.');
+                searchResults.innerHTML = noticeBox('Sunucuya bağlanılamadı.');
             }
         }
 
-        function emptyBox(message, pulse = false) {
-            return `<div class="text-center py-10 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
-                        <p class="text-slate-400 text-xs ${pulse ? 'animate-pulse' : ''}">${escapeHtml(message)}</p>
-                    </div>`;
+        function noticeBox(message) {
+            return `<div class="card p-8 text-center"><p class="text-sm text-ink-soft">${escapeHtml(message)}</p></div>`;
         }
 
         function sectionHeader(icon, title, count) {
-            return `<div class="flex items-center gap-2 mb-3">
-                        <i data-lucide="${icon}" class="w-4 h-4 text-indigo-400"></i>
-                        <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wide">${title}</h3>
-                        <span class="text-[10px] font-bold text-indigo-300 bg-indigo-500/15 border border-indigo-500/25 px-2 py-0.5 rounded-full">${count}</span>
+            return `<div class="flex items-center gap-2 mb-2.5">
+                        <i data-lucide="${icon}" class="w-4 h-4 text-ink-faint"></i>
+                        <h3 class="text-xs font-bold text-ink-soft uppercase tracking-wider">${title}</h3>
+                        <span class="chip">${count}</span>
                     </div>`;
         }
 
@@ -299,77 +305,60 @@
             const total = data.totals.topics + data.totals.comments + data.totals.users;
 
             if (total === 0) {
-                searchResults.innerHTML = emptyBox(`"${q}" için sonuç bulunamadı.`);
+                searchResults.innerHTML = noticeBox(`"${q}" için sonuç bulunamadı.`);
                 return;
             }
 
-            let html = `<p class="text-[11px] text-slate-500">
-                            <strong class="text-slate-300">${escapeHtml(q)}</strong> için ${total} sonuç
-                        </p>`;
+            let html = `<p class="hint"><strong class="text-ink-soft">${escapeHtml(q)}</strong> için ${total} sonuç</p>`;
 
-            // ── Kullanıcılar ──
-            if (data.users.length > 0) {
+            if (data.users.length) {
                 html += `<section>${sectionHeader('users', 'Kullanıcılar', data.totals.users)}
-                    <div class="grid gap-2 sm:grid-cols-2">` +
-                    data.users.map(u => `
-                        <a href="profile.html?u=${escapeAttr(u.username)}"
-                           class="flex items-center gap-3 bg-slate-900/50 border border-slate-800/80 hover:border-indigo-500/40 rounded-2xl p-3 transition">
-                            <div class="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center overflow-hidden shrink-0">
+                    <div class="grid gap-2 sm:grid-cols-2">` + data.users.map(u => `
+                        <a href="profile.html?u=${escapeAttr(u.username)}" class="card card-hover p-3 flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-lg bg-accent/15 border border-accent/25 grid place-items-center shrink-0 overflow-hidden">
                                 ${u.avatarUrl
-                            ? `<img src="${escapeHtml(u.avatarUrl)}" class="w-full h-full object-cover">`
-                            : `<span class="text-xs font-bold text-indigo-300">${escapeHtml(u.username.charAt(0).toUpperCase())}</span>`}
-                            </div>
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    ${renderUserName(u.username, 'text-xs')}
-                                    ${renderBadge(u.username)}
-                                </div>
-                                <p class="text-[11px] text-slate-500 truncate">${highlight(truncate(u.bio || 'Biyografi yok.', 60), q)}</p>
-                            </div>
+                    ? `<img src="${escapeHtml(u.avatarUrl)}" alt="" class="w-full h-full object-cover">`
+                    : `<span class="text-xs font-bold text-accent-soft">${escapeHtml(u.username.charAt(0).toUpperCase())}</span>`}
+                            </span>
+                            <span class="min-w-0">
+                                <span class="flex items-center gap-1.5 flex-wrap">
+                                    ${renderUserName(u.username, 'text-[13px]')}${renderBadge(u.username)}
+                                </span>
+                                <span class="block hint truncate mt-0.5">${highlight(truncate(u.bio || 'Biyografi yok.', 60), q)}</span>
+                            </span>
                         </a>`).join('') + `</div></section>`;
             }
 
-            // ── Konular ──
-            if (data.topics.length > 0) {
+            if (data.topics.length) {
                 html += `<section>${sectionHeader('file-text', 'Konular', data.totals.topics)}
-                    <div class="space-y-2">` +
-                    data.topics.map(t => `
-                        <a href="topic-detail.html?id=${t.id}"
-                           class="block bg-slate-900/50 border border-slate-800/80 hover:border-indigo-500/40 rounded-2xl p-4 transition">
-                            <div class="flex items-center justify-between gap-3 mb-1.5">
-                                <span class="text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
-                                    ${escapeHtml(categoryNames[t.categoryId] || 'Kategori #' + t.categoryId)}
-                                </span>
-                                <span class="text-[10px] text-slate-500">${formatDate(t.createdAt)}</span>
+                    <div class="space-y-2">` + data.topics.map(t => `
+                        <a href="topic-detail.html?id=${t.id}" class="card card-hover p-4 block">
+                            <div class="flex items-center gap-2 mb-1.5 text-xs">
+                                <span class="chip chip-accent">${escapeHtml(t.categoryName)}</span>
+                                <span class="text-ink-faint ml-auto">${escapeHtml(timeAgo(t.createdAt))}${t.updatedAt ? ' · düzenlendi' : ''}</span>
                             </div>
-                            <h4 class="text-sm font-bold text-slate-100 mb-1">${highlight(t.title, q)}</h4>
-                            <p class="text-[11px] text-slate-400 leading-relaxed">${highlight(truncate(t.content, 180), q)}</p>
-                            <div class="flex items-center gap-2 mt-2 pt-2 border-t border-slate-800/60">
-                                ${renderUserName(t.authorUsername, 'text-[11px]')}
-                                ${renderBadge(t.authorUsername)}
-                                <span class="ml-auto text-[10px] text-slate-500 flex items-center gap-1">
-                                    <i data-lucide="heart" class="w-3 h-3 text-rose-500"></i> ${t.likeCount}
+                            <h4 class="text-sm font-semibold text-ink mb-1">${highlight(t.title, q)}</h4>
+                            <p class="text-[13px] text-ink-soft">${highlight(truncate(t.content, 180), q)}</p>
+                            <div class="flex items-center gap-2 mt-3 pt-3 divider text-xs">
+                                ${renderUserName(t.authorUsername, 'text-[13px]')}${renderBadge(t.authorUsername)}
+                                <span class="text-ink-faint ml-auto flex items-center gap-1">
+                                    <i data-lucide="heart" class="w-3 h-3"></i>${t.likeCount}
                                 </span>
                             </div>
                         </a>`).join('') + `</div></section>`;
             }
 
-            // ── Yanıtlar ──
-            if (data.comments.length > 0) {
+            if (data.comments.length) {
                 html += `<section>${sectionHeader('message-square', 'Yanıtlar', data.totals.comments)}
-                    <div class="space-y-2">` +
-                    data.comments.map(c => `
-                        <a href="topic-detail.html?id=${c.topicId}"
-                           class="block bg-slate-900/50 border border-slate-800/80 hover:border-indigo-500/40 rounded-2xl p-4 transition">
-                            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                                ${renderUserName(c.authorUsername, 'text-[11px]')}
-                                ${renderBadge(c.authorUsername)}
-                                <span class="ml-auto text-[10px] text-slate-500">${formatDate(c.createdAt)}</span>
+                    <div class="space-y-2">` + data.comments.map(c => `
+                        <a href="topic-detail.html?id=${c.topicId}" class="card card-hover p-4 block">
+                            <div class="flex items-center gap-2 mb-1.5 text-xs flex-wrap">
+                                ${renderUserName(c.authorUsername, 'text-[13px]')}${renderBadge(c.authorUsername)}
+                                <span class="text-ink-faint ml-auto">${escapeHtml(timeAgo(c.createdAt))}${c.updatedAt ? ' · düzenlendi' : ''}</span>
                             </div>
-                            <p class="text-[11px] text-slate-300 leading-relaxed">${highlight(truncate(c.content, 180), q)}</p>
-                            <p class="text-[10px] text-slate-500 mt-2 pt-2 border-t border-slate-800/60 flex items-center gap-1">
-                                <i data-lucide="corner-down-right" class="w-3 h-3"></i>
-                                ${escapeHtml(c.topicTitle)}
+                            <p class="text-[13px] text-ink-soft">${highlight(truncate(c.content, 180), q)}</p>
+                            <p class="hint mt-2.5 pt-2.5 divider flex items-center gap-1.5">
+                                <i data-lucide="corner-down-right" class="w-3 h-3"></i>${escapeHtml(c.topicTitle)}
                             </p>
                         </a>`).join('') + `</div></section>`;
             }
@@ -378,26 +367,12 @@
             lucide.createIcons();
         }
 
-        function formatDate(value) {
-            return new Date(value).toLocaleDateString('tr-TR', {
-                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-            });
-        }
+        // ── Başlangıç ───────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderHeader({ active: 'home' });
+            await renderCategoryBar();
+            await fetchTopics(0);
 
-        function filterCategory(catId, btnElement) {
-            currentCategoryId = catId;
-            document.querySelectorAll('.cat-btn').forEach(btn => {
-                btn.className = 'cat-btn bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-slate-800 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5';
-            });
-            btnElement.className = 'cat-btn bg-indigo-600 text-white border border-indigo-500 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 shadow-lg shadow-indigo-600/20';
-            fetchTopics(catId);
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            renderUserNav();
-            fetchTopics(0);
-
-            // index.html?q=... ile gelen aramayı otomatik çalıştır (paylaşılabilir link).
             const initialQuery = new URLSearchParams(window.location.search).get('q');
             if (initialQuery) {
                 searchInput.value = initialQuery;

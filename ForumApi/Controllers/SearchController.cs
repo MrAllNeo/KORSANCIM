@@ -38,6 +38,8 @@ namespace ForumApi.Controllers
             var needle = term.ToLower();
 
             var topics = await _context.Topics
+                .Include(t => t.User)
+                .Include(t => t.Category)
                 .Where(t => t.Title.ToLower().Contains(needle) || t.Content.ToLower().Contains(needle))
                 .OrderByDescending(t => t.CreatedAt)
                 .Take(limit)
@@ -47,13 +49,17 @@ namespace ForumApi.Controllers
                     t.Title,
                     t.Content,
                     t.CategoryId,
-                    t.AuthorUsername,
+                    CategoryName = t.Category!.Name,
+                    AuthorUsername = t.User!.Username,
                     t.LikeCount,
-                    t.CreatedAt
+                    t.CreatedAt,
+                    t.UpdatedAt
                 })
                 .ToListAsync();
 
             var comments = await _context.Comments
+                .Include(c => c.User)
+                .Include(c => c.Topic)
                 .Where(c => c.Content.ToLower().Contains(needle))
                 .OrderByDescending(c => c.CreatedAt)
                 .Take(limit)
@@ -61,30 +67,14 @@ namespace ForumApi.Controllers
                 {
                     c.Id,
                     c.TopicId,
+                    TopicTitle = c.Topic!.Title,
                     c.Content,
-                    c.AuthorUsername,
+                    AuthorUsername = c.User!.Username,
                     c.LikeCount,
-                    c.CreatedAt
+                    c.CreatedAt,
+                    c.UpdatedAt
                 })
                 .ToListAsync();
-
-            // Yorumun ait olduğu konu başlığını da dönelim ki sonuç listesinde
-            // "şu konuda" bilgisi gösterilebilsin.
-            var topicIds = comments.Select(c => c.TopicId).Distinct().ToList();
-            var topicTitles = await _context.Topics
-                .Where(t => topicIds.Contains(t.Id))
-                .ToDictionaryAsync(t => t.Id, t => t.Title);
-
-            var commentResults = comments.Select(c => new
-            {
-                c.Id,
-                c.TopicId,
-                TopicTitle = topicTitles.TryGetValue(c.TopicId, out var title) ? title : "(silinmiş konu)",
-                c.Content,
-                c.AuthorUsername,
-                c.LikeCount,
-                c.CreatedAt
-            });
 
             // E-posta bilerek dönülmüyor — arama herkese açık.
             var users = await _context.Users
@@ -105,7 +95,7 @@ namespace ForumApi.Controllers
             {
                 query = term,
                 topics,
-                comments = commentResults,
+                comments,
                 users,
                 totals = new
                 {

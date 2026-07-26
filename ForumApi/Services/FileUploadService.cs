@@ -75,5 +75,40 @@ namespace ForumApi.Services
 
             return "/uploads/" + fileName;
         }
+
+        // Konu silinirken eklerini de temizler. Sessizce çalışır — dosya zaten
+        // yoksa veya silinemezse istek başarısız sayılmaz.
+        public void DeleteAll(IEnumerable<string> fileUrls)
+        {
+            var uploadsFolder = Path.GetFullPath(Path.Combine(_env.WebRootPath, "uploads"));
+
+            foreach (var url in fileUrls)
+            {
+                if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("/uploads/", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var candidate = Path.GetFullPath(Path.Combine(uploadsFolder, Path.GetFileName(url)));
+
+                // Yol, uploads klasörünün dışına çıkmamalı (dizin aşımına karşı).
+                if (!candidate.StartsWith(uploadsFolder + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (File.Exists(candidate)) File.Delete(candidate);
+                }
+                catch (IOException)
+                {
+                    // Dosya kilitliyse silme atlanır; kayıtlar zaten temizlendi.
+                }
+                catch (UnauthorizedAccessException)
+                {
+                }
+            }
+        }
     }
 }

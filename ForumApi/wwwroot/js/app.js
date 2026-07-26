@@ -36,6 +36,13 @@ function highlight(value, query) {
     return safe.replace(new RegExp(safeTerm, 'gi'), m => `<mark class="search-hit">${m}</mark>`);
 }
 
+// Varsayılan avatar. SVG nitelikleri TEK tırnakla yazılı — bu değer
+// src="..." içine gömüldüğünde çift tırnak niteliği erken kapatıyordu.
+const DEFAULT_AVATAR = "data:image/svg+xml;utf8,"
+    + "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24'"
+    + " fill='none' stroke='%23818cf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>"
+    + "<path d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/><circle cx='12' cy='7' r='4'/></svg>";
+
 // ── Kullanıcı Ünvanları (tier) ──────────────────────────────
 // Stiller css/app.css içinde. Eşleşme TAM kullanıcı adı üzerinden yapılır —
 // eskiden 'creator' geçen her ad (ör. "creator123") ünvanı kapıyordu.
@@ -183,36 +190,122 @@ async function readError(response, fallback) {
     }
 }
 
-// ── Ortak Header (giriş/çıkış alanı) ────────────────────────
-function renderUserNav() {
-    const userNav = document.getElementById('user-nav-area');
-    if (!userNav) return;
+// ── Kategoriler ─────────────────────────────────────────────
+// Tek kaynak: /api/categories. Sayfa başına bir kez çekilip önbelleğe alınır;
+// isimler artık HTML içinde sabit kodlu değil.
+let _categoryCache = null;
 
+async function getCategories() {
+    if (_categoryCache) return _categoryCache;
+    try {
+        const res = await fetch('/api/categories');
+        _categoryCache = res.ok ? await res.json() : [];
+    } catch {
+        _categoryCache = [];
+    }
+    return _categoryCache;
+}
+
+function categoryName(id) {
+    const found = (_categoryCache || []).find(c => c.id === id);
+    return found ? found.name : `Kategori #${id}`;
+}
+
+// ── Ortak Başlık ────────────────────────────────────────────
+// Her sayfa <div id="site-header"></div> koyar, gerisini burası halleder.
+// Böylece profil sekmesi tüm sayfalarda tutarlı biçimde bulunur.
+function renderHeader(options = {}) {
+    const mount = document.getElementById('site-header');
+    if (!mount) return;
+
+    const { active = '', showNewTopic = true } = options;
     const username = getUsername();
 
-    if (username) {
-        userNav.innerHTML = `
-            <div class="flex items-center gap-3 bg-slate-950/80 border border-slate-800/80 pl-2 pr-3 py-1.5 rounded-xl text-xs">
-                <a href="profile.html?u=${escapeAttr(username)}" class="flex items-center gap-2 hover:text-indigo-400 transition group cursor-pointer">
-                    <div class="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0 group-hover:border-indigo-500/50">
-                        <i data-lucide="user" class="w-4 h-4 text-indigo-400"></i>
-                    </div>
-                    <span class="text-slate-200 font-semibold group-hover:text-indigo-400 transition">${escapeHtml(username)}</span>
-                </a>
-                <button onclick="logout()" title="Çıkış Yap" class="text-slate-500 hover:text-rose-400 transition ml-1 p-1">
-                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
-                </button>
-            </div>
-        `;
-    } else {
-        userNav.innerHTML = `
-            <a href="auth.html" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700">
-                <i data-lucide="user" class="w-4 h-4"></i> Giriş Yap / Kayıt
-            </a>
-        `;
-    }
+    const navLink = (href, icon, text, key) => `
+        <a href="${href}" class="btn btn-quiet ${active === key ? 'text-ink' : ''}">
+            <i data-lucide="${icon}" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">${text}</span>
+        </a>`;
 
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
+    const userArea = username
+        ? `<div class="flex items-center gap-1">
+               <a href="profile.html?u=${escapeAttr(username)}"
+                  class="btn btn-ghost btn-sm ${active === 'profile' ? 'text-ink' : ''}" title="Profilim">
+                   <span class="w-5 h-5 rounded-md bg-accent/15 border border-accent/30 grid place-items-center text-[10px] font-bold text-accent-soft shrink-0">
+                       ${escapeHtml(username.charAt(0).toUpperCase())}
+                   </span>
+                   <span class="hidden sm:inline max-w-[10ch] truncate">${escapeHtml(username)}</span>
+               </a>
+               <button onclick="logout()" class="btn btn-quiet btn-danger" title="Çıkış Yap" aria-label="Çıkış Yap">
+                   <i data-lucide="log-out" class="w-4 h-4"></i>
+               </button>
+           </div>`
+        : `<a href="auth.html" class="btn btn-ghost btn-sm">
+               <i data-lucide="log-in" class="w-4 h-4"></i>
+               <span class="hidden sm:inline">Giriş Yap</span>
+           </a>`;
+
+    mount.innerHTML = `
+        <header class="sticky top-0 z-40 border-b border-line bg-base/85 backdrop-blur">
+            <div class="max-w-3xl mx-auto px-4 h-14 flex items-center gap-2">
+                <a href="index.html" class="flex items-center gap-2.5 mr-auto shrink-0" aria-label="Ana sayfa">
+                    <span class="w-8 h-8 rounded-lg bg-accent grid place-items-center text-white font-bold text-sm">K</span>
+                    <span class="font-bold tracking-tight text-ink hidden sm:inline">KORSANCIM</span>
+                </a>
+                ${navLink('index.html', 'layout-list', 'Konular', 'home')}
+                ${showNewTopic ? navLink('create-topic.html', 'square-pen', 'Yeni Konu', 'new') : ''}
+                ${userArea}
+            </div>
+        </header>`;
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// Geriye dönük uyumluluk: eski sayfalar bu adı çağırıyordu.
+function renderUserNav() {
+    renderHeader();
+}
+
+// ── Küçük yardımcılar ───────────────────────────────────────
+function formatDate(value) {
+    return new Date(value).toLocaleDateString('tr-TR', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+}
+
+// "3 dakika önce" biçimi — liste görünümlerinde daha okunaklı.
+// 30 günü aşan tarihlerde tam tarihe düşer.
+function timeAgo(value) {
+    const seconds = Math.floor((Date.now() - new Date(value)) / 1000);
+
+    if (seconds < 0) return 'az önce';   // saat farkından doğan negatifler
+    if (seconds < 60) return 'az önce';
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} dakika önce`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} saat önce`;
+
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days} gün önce`;
+    if (days < 30) return `${Math.floor(days / 7)} hafta önce`;
+
+    return formatDate(value);
+}
+
+// Metin alanlarına canlı karakter sayacı bağlar.
+function attachCounter(inputId, counterId, max) {
+    const input = document.getElementById(inputId);
+    const counter = document.getElementById(counterId);
+    if (!input || !counter) return;
+
+    const update = () => {
+        const used = input.value.length;
+        counter.textContent = `${used} / ${max}`;
+        counter.classList.toggle('text-bad', used > max);
+    };
+
+    input.addEventListener('input', update);
+    update();
 }

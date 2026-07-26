@@ -4,165 +4,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş Yap / Kayıt Ol - KORSANCIM</title>
+    <title>Giriş — KORSANCIM</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%236366f1'/><text x='16' y='23' font-family='system-ui,sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'>K</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/theme.js"></script>
     <link rel="stylesheet" href="css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="js/app.js"></script>
 </head>
 
-<body
-    class="bg-slate-950 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.2),rgba(255,255,255,0))] min-h-screen text-slate-100 antialiased font-sans p-4 flex items-center justify-center">
+<body class="bg-base text-ink font-sans min-h-screen grid place-items-center px-4 py-10">
 
-    <div class="w-full max-w-md bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 shadow-2xl">
-        <a href="index.html" class="flex items-center justify-center gap-3 mb-6">
-            <div
-                class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-600/30">
-                K</div>
-            <span
-                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">KORSANCIM</span>
+    <div class="w-full max-w-sm">
+
+        <a href="index.html" class="flex items-center justify-center gap-2.5 mb-8">
+            <span class="w-9 h-9 rounded-lg bg-accent grid place-items-center text-white font-bold">K</span>
+            <span class="font-bold text-lg tracking-tight">KORSANCIM</span>
         </a>
 
-        <!-- Sekme Değiştirici -->
-        <div class="flex bg-slate-950/80 p-1 rounded-xl mb-6 border border-slate-800">
-            <button id="tab-login" onclick="switchTab('login')"
-                class="flex-1 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition">Giriş
-                Yap</button>
-            <button id="tab-register" onclick="switchTab('register')"
-                class="flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">Kayıt
-                Ol</button>
+        <div class="card p-6">
+
+            <div class="flex gap-1 p-1 rounded-lg bg-sunken border border-line mb-6">
+                <button id="tab-login" onclick="switchTab('login')" class="tab flex-1"
+                    aria-selected="true">Giriş Yap</button>
+                <button id="tab-register" onclick="switchTab('register')" class="tab flex-1"
+                    aria-selected="false">Kayıt Ol</button>
+            </div>
+
+            <!-- GİRİŞ -->
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="label" for="login-user">Kullanıcı adı veya e-posta</label>
+                    <input type="text" id="login-user" required autocomplete="username" class="input">
+                </div>
+                <div>
+                    <label class="label" for="login-pass">Şifre</label>
+                    <div class="relative">
+                        <input type="password" id="login-pass" required autocomplete="current-password"
+                            class="input pr-10">
+                        <button type="button" onclick="togglePassword('login-pass', this)"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink transition p-1.5"
+                            aria-label="Şifreyi göster">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Oturum Aç</button>
+            </form>
+
+            <!-- KAYIT -->
+            <form id="register-form" class="space-y-4 hidden">
+                <div>
+                    <label class="label" for="reg-user">Kullanıcı adı</label>
+                    <input type="text" id="reg-user" required autocomplete="username" minlength="3" maxlength="32"
+                        pattern="[a-zA-Z0-9_.\-]+" class="input" placeholder="PardusGamer">
+                    <p class="hint mt-1.5">3-32 karakter · harf, rakam ve _ . -</p>
+                </div>
+                <div>
+                    <label class="label" for="reg-email">E-posta</label>
+                    <input type="email" id="reg-email" required autocomplete="email" class="input"
+                        placeholder="ornek@korsancim.com">
+                </div>
+                <div>
+                    <label class="label" for="reg-pass">Şifre</label>
+                    <div class="relative">
+                        <input type="password" id="reg-pass" required autocomplete="new-password" minlength="8"
+                            class="input pr-10">
+                        <button type="button" onclick="togglePassword('reg-pass', this)"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink transition p-1.5"
+                            aria-label="Şifreyi göster">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <p class="hint mt-1.5">En az 8 karakter</p>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Hesap Oluştur</button>
+            </form>
+
+            <div id="auth-alert" class="hidden alert mt-4 text-center"></div>
         </div>
 
-        <!-- GİRİŞ FORMU -->
-        <form id="login-form" class="space-y-4">
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Kullanıcı Adı veya E-Posta</label>
-                <input type="text" id="login-user" required placeholder="Rumuz veya e-posta girin"
-                    class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Şifre</label>
-                <input type="password" id="login-pass" required placeholder="••••••••"
-                    class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-            </div>
-            <button type="submit"
-                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl text-xs font-semibold transition shadow-lg shadow-indigo-600/25">Oturum
-                Aç</button>
-        </form>
-
-        <!-- KAYIT FORMU -->
-        <form id="register-form" class="space-y-4 hidden">
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Kullanıcı Adı (Rumuz)</label>
-                <input type="text" id="reg-user" required placeholder="Örn: PardusGamer"
-                    class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">E-Posta Adresi</label>
-                <input type="email" id="reg-email" required placeholder="ornek@korsancim.com"
-                    class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Şifre</label>
-                <input type="password" id="reg-pass" required placeholder="••••••••"
-                    class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-            </div>
-            <button type="submit"
-                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl text-xs font-semibold transition shadow-lg shadow-indigo-600/25">Hesap
-                Oluştur</button>
-        </form>
-
-        <!-- Hata / Bilgi Mesajı -->
-        <div id="auth-alert" class="hidden mt-4 p-3 rounded-xl text-xs font-medium text-center"></div>
+        <p class="hint text-center mt-6">
+            <a href="index.html" class="hover:text-ink-soft transition">← Foruma dön</a>
+        </p>
     </div>
 
     <script>
-        // Göreli yol — arayüz API ile aynı origin'den servis ediliyor.
         const API_BASE = '/api/auth';
 
         function switchTab(tab) {
-            const loginForm = document.getElementById('login-form');
-            const regForm = document.getElementById('register-form');
-            const tabLogin = document.getElementById('tab-login');
-            const tabReg = document.getElementById('tab-register');
-            const alertBox = document.getElementById('auth-alert');
-
-            alertBox.classList.add('hidden');
-
-            if (tab === 'login') {
-                loginForm.classList.remove('hidden');
-                regForm.classList.add('hidden');
-                tabLogin.className = 'flex-1 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition';
-                tabReg.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition';
-            } else {
-                loginForm.classList.add('hidden');
-                regForm.classList.remove('hidden');
-                tabReg.className = 'flex-1 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition';
-                tabLogin.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition';
-            }
+            const isLogin = tab === 'login';
+            document.getElementById('login-form').classList.toggle('hidden', !isLogin);
+            document.getElementById('register-form').classList.toggle('hidden', isLogin);
+            document.getElementById('tab-login').setAttribute('aria-selected', isLogin);
+            document.getElementById('tab-register').setAttribute('aria-selected', !isLogin);
+            document.getElementById('auth-alert').classList.add('hidden');
         }
 
-        function showAlert(msg, isSuccess = false) {
-            const alertBox = document.getElementById('auth-alert');
-            alertBox.innerText = msg;
-            alertBox.className = `mt-4 p-3 rounded-xl text-xs font-medium text-center ${isSuccess ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/30 text-rose-400'}`;
-            alertBox.classList.remove('hidden');
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.innerHTML = `<i data-lucide="${show ? 'eye-off' : 'eye'}" class="w-4 h-4"></i>`;
+            btn.setAttribute('aria-label', show ? 'Şifreyi gizle' : 'Şifreyi göster');
+            lucide.createIcons();
         }
 
-        // Giriş Yap İşlemi
-        // Giriş Yap İşlemi
+        function showAlert(message, ok = false) {
+            const box = document.getElementById('auth-alert');
+            box.textContent = message;
+            box.className = `alert mt-4 text-center ${ok ? 'alert-ok' : 'alert-bad'}`;
+        }
+
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const usernameOrEmail = document.getElementById('login-user').value;
-            const password = document.getElementById('login-pass').value;
+            const btn = e.target.querySelector('button[type=submit]');
+            btn.disabled = true;
 
             try {
                 const res = await fetch(`${API_BASE}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ usernameOrEmail, password })
+                    body: JSON.stringify({
+                        usernameOrEmail: document.getElementById('login-user').value,
+                        password: document.getElementById('login-pass').value
+                    })
                 });
 
                 const data = await res.json();
                 if (res.ok) {
-                    // Token ve kullanıcı bilgisi tek yerden yönetiliyor (js/app.js).
                     saveSession(data);
-
-                    showAlert('Giriş başarılı! Ana sayfaya yönlendiriliyorsunuz...', true);
-                    setTimeout(() => window.location.href = 'index.html', 800);
+                    showAlert('Giriş başarılı, yönlendiriliyorsun…', true);
+                    setTimeout(() => window.location.href = 'index.html', 600);
                 } else {
                     showAlert(data.error || 'Giriş yapılamadı.');
+                    btn.disabled = false;
                 }
-            } catch (err) {
-                showAlert('Sunucuyla bağlantı kurulamadı.');
+            } catch {
+                showAlert('Sunucuya bağlanılamadı.');
+                btn.disabled = false;
             }
         });
 
-        // Kayıt Ol İşlemi
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const username = document.getElementById('reg-user').value;
-            const email = document.getElementById('reg-email').value;
-            const password = document.getElementById('reg-pass').value;
+            const btn = e.target.querySelector('button[type=submit]');
+            btn.disabled = true;
 
             try {
                 const res = await fetch(`${API_BASE}/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, email, password })
+                    body: JSON.stringify({
+                        username: document.getElementById('reg-user').value,
+                        email: document.getElementById('reg-email').value,
+                        password: document.getElementById('reg-pass').value
+                    })
                 });
 
                 const data = await res.json();
                 if (res.ok) {
-                    showAlert('Kayıt başarılı! Şimdi giriş yapabilirsiniz.', true);
+                    showAlert('Kayıt başarılı! Şimdi giriş yapabilirsin.', true);
                     switchTab('login');
                 } else {
                     showAlert(data.error || 'Kayıt olunamadı.');
                 }
-            } catch (err) {
-                showAlert('Sunucuyla bağlantı kurulamadı.');
+            } catch {
+                showAlert('Sunucuya bağlanılamadı.');
+            } finally {
+                btn.disabled = false;
             }
         });
+
+        document.addEventListener('DOMContentLoaded', () => lucide.createIcons());
     </script>
 </body>
 
