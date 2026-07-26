@@ -1,0 +1,137 @@
+/* Kullanıcı ünvan (tier) rozetleri ve isim stilleri.
+   Rozet mantığı js/app.js içindeki USER_TIERS ile eşleşir. */
+
+@keyframes tier-gradient-shift {
+    0%,
+    100% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes tier-glow-pulse {
+    0%,
+    100% {
+        filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.45));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 14px rgba(244, 63, 94, 0.7));
+    }
+}
+
+@keyframes tier-shimmer {
+    0% {
+        transform: translateX(-130%) skewX(-18deg);
+    }
+
+    100% {
+        transform: translateX(320%) skewX(-18deg);
+    }
+}
+
+/* ── Rozet gövdesi ─────────────────────────────────────────── */
+.tier-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    vertical-align: middle;
+}
+
+/* Üzerinden geçen parlama — sadece ünvanlı rozetlerde */
+.tier-badge.tier-shine::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 35%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: tier-shimmer 3.4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* ── CREATOR ───────────────────────────────────────────────── */
+.tier-creator-badge {
+    color: #fde68a;
+    background: linear-gradient(110deg, rgba(251, 191, 36, 0.2), rgba(244, 63, 94, 0.2), rgba(167, 139, 250, 0.2));
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.3), inset 0 0 12px rgba(251, 191, 36, 0.08);
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+.tier-creator-name {
+    background: linear-gradient(110deg, #fbbf24, #fb7185, #c084fc, #38bdf8, #fbbf24);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    font-weight: 900;
+    animation: tier-gradient-shift 4.5s ease-in-out infinite,
+               tier-glow-pulse 3s ease-in-out infinite;
+}
+
+/* ── ASSISTANT OF CREATOR ──────────────────────────────────── */
+.tier-assistant-badge {
+    color: #a5f3fc;
+    background: linear-gradient(110deg, rgba(34, 211, 238, 0.18), rgba(56, 189, 248, 0.18), rgba(129, 140, 248, 0.18));
+    border: 1px solid rgba(34, 211, 238, 0.45);
+    box-shadow: 0 0 14px rgba(34, 211, 238, 0.25), inset 0 0 10px rgba(34, 211, 238, 0.07);
+    text-shadow: 0 0 9px rgba(34, 211, 238, 0.45);
+}
+
+.tier-assistant-name {
+    background: linear-gradient(110deg, #67e8f9, #38bdf8, #818cf8, #67e8f9);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    font-weight: 800;
+    animation: tier-gradient-shift 5.5s ease-in-out infinite;
+}
+
+/* ── Sıradan üye ───────────────────────────────────────────── */
+.tier-member-badge {
+    color: #94a3b8;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    font-weight: 600;
+}
+
+.tier-member-name {
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+/* ── Arama sonucu vurgusu ──────────────────────────────────── */
+.search-hit {
+    background: rgba(99, 102, 241, 0.32);
+    color: #e0e7ff;
+    border-radius: 3px;
+    padding: 0 2px;
+    font-weight: 700;
+}
+
+/* Hareket hassasiyeti olan kullanıcılar için animasyonları durdur. */
+@media (prefers-reduced-motion: reduce) {
+
+    .tier-creator-name,
+    .tier-assistant-name,
+    .tier-badge.tier-shine::after {
+        animation: none;
+    }
+
+    .tier-creator-name,
+    .tier-assistant-name {
+        background-position: 0% 50%;
+    }
+}

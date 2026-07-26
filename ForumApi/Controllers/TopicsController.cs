@@ -1,8 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using System.Text.Json;
 using ForumApi.Data;
 using ForumApi.Models;
+using ForumApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace ForumApi.Controllers
 {
@@ -11,21 +15,33 @@ namespace ForumApi.Controllers
     public class TopicsController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IWebHostEnvironment _env;
+        private readonly FileUploadService _uploads;
 
-        public TopicsController(AppDbContext context, IWebHostEnvironment env)
+        public TopicsController(AppDbContext context, FileUploadService uploads)
         {
             _context = context;
-            _env = env;
+            _uploads = uploads;
         }
+
+        // Kimlik yalnızca doğrulanmış token'dan gelir; istemcinin gönderdiği
+        // hiçbir kullanıcı adı alanına güvenilmez.
+        private string CurrentUsername => User.FindFirstValue(ClaimTypes.Name)!;
 
         public class CreateTopicDto
         {
+            [Required(ErrorMessage = "Başlık zorunludur.")]
+            [StringLength(200, MinimumLength = 3, ErrorMessage = "Başlık 3-200 karakter olmalıdır.")]
             public string Title { get; set; } = string.Empty;
+
+            [Range(1, int.MaxValue, ErrorMessage = "Geçerli bir kategori seçin.")]
             public int CategoryId { get; set; }
+
+            [Required(ErrorMessage = "İçerik zorunludur.")]
+            [StringLength(20000, MinimumLength = 1, ErrorMessage = "İçerik en fazla 20000 karakter olabilir.")]
             public string Content { get; set; } = string.Empty;
+
             public bool IsLegalTermsAccepted { get; set; }
-            public string AuthorUsername { get; set; } = "Anonim";
+
             public List<IFormFile>? Files { get; set; }
         }
 
@@ -86,6 +102,7 @@ namespace ForumApi.Controllers
         }
 
         // POST: api/topics
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> CreateTopic([FromForm] CreateTopicDto dto)
         {
@@ -98,23 +115,23 @@ namespace ForumApi.Controllers
 
             if (dto.Files != null && dto.Files.Count > 0)
             {
-                var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads");
-                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+                if (dto.Files.Count > FileUploadService.MaxFilesPerTopic)
+                {
+                    return BadRequest(new { error = $"En fazla {FileUploadService.MaxFilesPerTopic} dosya yükleyebilirsiniz." });
+                }
+
+                // Tüm dosyaları önce doğrula; biri geçersizse hiçbiri kaydedilmesin.
+                foreach (var file in dto.Files)
+                {
+                    if (!_uploads.IsValid(file, out var error))
+                    {
+                        return BadRequest(new { error });
+                    }
+                }
 
                 foreach (var file in dto.Files)
                 {
-                    if (file.Length > 0)
-                    {
-                        var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-                        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                        using (var stream = new FileStream(filePath, FileMode.Create))
-                        {
-                            await file.CopyToAsync(stream);
-                        }
-
-                        fileUrls.Add("/uploads/" + uniqueFileName);
-                    }
+                    fileUrls.Add(await _uploads.SaveAsync(file, "topic"));
                 }
             }
 
@@ -124,7 +141,7 @@ namespace ForumApi.Controllers
                 CategoryId = dto.CategoryId,
                 Content = dto.Content,
                 IsLegalTermsAccepted = dto.IsLegalTermsAccepted,
-                AuthorUsername = string.IsNullOrWhiteSpace(dto.AuthorUsername) ? "Anonim" : dto.AuthorUsername,
+                AuthorUsername = CurrentUsername,
                 FileUrlsJson = fileUrls.Count > 0 ? JsonSerializer.Serialize(fileUrls) : null,
                 CreatedAt = DateTime.UtcNow
             };
@@ -136,18 +153,17 @@ namespace ForumApi.Controllers
         }
 
         // POST: api/topics/5/like
-        // POST: api/topics/5/like
+        [Authorize]
         [HttpPost("{id}/like")]
-        public async Task<IActionResult> LikeTopic(int id, [FromBody] LikeRequestDto dto)
+        public async Task<IActionResult> LikeTopic(int id)
         {
             var topic = await _context.Topics.FindAsync(id);
             if (topic == null) return NotFound(new { error = "Konu bulunamadı." });
 
-            var username = string.IsNullOrWhiteSpace(dto.Username) ? "Anonim" : dto.Username;
+            var username = CurrentUsername;
 
-            // Kullanıcı bu konuyu daha önce beğenmiş mi?
             var existingLike = await _context.TopicLikes
-                .FirstOrDefaultAsync(l => l.TopicId == id && l.Username.ToLower() == username.ToLower());
+                .FirstOrDefaultAsync(l => l.TopicId == id && l.Username == username);
 
             bool isLiked;
 
@@ -155,24 +171,44 @@ namespace ForumApi.Controllers
             {
                 // Zaten beğenmişse beğeniyi geri al (Unlike)
                 _context.TopicLikes.Remove(existingLike);
-                topic.LikeCount = Math.Max(0, topic.LikeCount - 1);
                 isLiked = false;
             }
             else
             {
                 // Beğenmemişse yeni beğeni ekle
                 _context.TopicLikes.Add(new TopicLike { TopicId = id, Username = username });
-                topic.LikeCount += 1;
                 isLiked = true;
             }
 
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // Unique index ihlali: aynı anda gelen ikinci beğeni isteği.
+                // İlk istek zaten kaydı yazmış durumda, sayacı yeniden hesaplayıp dönüyoruz.
+                _context.ChangeTracker.Clear();
+                var current = await _context.TopicLikes.CountAsync(l => l.TopicId == id);
+                return Ok(new { likes = current, isLiked = true });
+            }
+
+            // Sayacı beğeni tablosundan türetiyoruz — okuyup-artırmaya göre
+            // yarış koşullarına karşı dayanıklı.
+            topic.LikeCount = await _context.TopicLikes.CountAsync(l => l.TopicId == id);
             await _context.SaveChangesAsync();
+
             return Ok(new { likes = topic.LikeCount, isLiked });
         }
 
-        public class LikeRequestDto
+        // GET: api/topics/5/like — mevcut kullanıcı bu konuyu beğenmiş mi?
+        [Authorize]
+        [HttpGet("{id}/like")]
+        public async Task<IActionResult> GetLikeState(int id)
         {
-            public string Username { get; set; } = string.Empty;
+            var username = CurrentUsername;
+            var isLiked = await _context.TopicLikes.AnyAsync(l => l.TopicId == id && l.Username == username);
+            return Ok(new { isLiked });
         }
     }
 }

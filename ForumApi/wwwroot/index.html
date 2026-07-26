@@ -4,9 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevForum - Anonim Topluluk</title>
+    <title>KORSANCIM - Anonim Topluluk</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/app.css">
+    <script src="js/app.js"></script>
 </head>
 
 <body
@@ -17,9 +19,9 @@
         <a href="index.html" class="flex items-center gap-3">
             <div
                 class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-600/30">
-                F</div>
+                K</div>
             <span
-                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">DevForum</span>
+                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">KORSANCIM</span>
         </a>
 
         <div class="flex items-center gap-3">
@@ -39,13 +41,17 @@
             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                 <i data-lucide="search" class="w-4 h-4"></i>
             </div>
-            <input type="text" id="search-input" onkeyup="searchTopics()"
-                placeholder="Konu başlığında, içeriğinde veya yazarda ara..."
-                class="w-full bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl pl-10 pr-4 py-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition shadow-xl">
+            <input type="text" id="search-input" autocomplete="off"
+                placeholder="Konularda, yanıtlarda ve kullanıcılarda ara..."
+                class="w-full bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl pl-10 pr-10 py-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition shadow-xl">
+            <button id="search-clear" onclick="clearSearch()" title="Aramayı temizle"
+                class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-200 transition">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
         </div>
 
         <!-- KATEGORİ FİLTRELEME BUTONLARI -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none">
+        <div id="category-bar" class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none">
             <button onclick="filterCategory(0, this)"
                 class="cat-btn active-cat bg-indigo-600 text-white border border-indigo-500 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 shadow-lg shadow-indigo-600/20">
                 <i data-lucide="layers" class="w-3.5 h-3.5"></i> Tüm Konular
@@ -70,6 +76,9 @@
                 <p class="text-slate-400 text-xs animate-pulse">Konular yükleniyor...</p>
             </div>
         </div>
+
+        <!-- ARAMA SONUÇLARI (arama yapılınca konu listesinin yerini alır) -->
+        <div id="search-results" class="hidden space-y-6"></div>
     </main>
 
     <script>
@@ -117,11 +126,10 @@
 
                     const categoryName = categoryNames[topic.categoryId] || `Kategori #${topic.categoryId}`;
 
-                    const formattedDate = new Date(topic.createdAt).toLocaleDateString('tr-TR', {
-                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-                    });
-
+                    const formattedDate = formatDate(topic.createdAt);
                     const authorName = topic.authorUsername || 'Anonim';
+                    const safeTitle = escapeHtml(topic.title);
+                    const safeContent = escapeHtml(topic.content);
 
                     return `
                     <article class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 hover:border-slate-700/80 transition rounded-2xl p-5 shadow-lg group">
@@ -137,20 +145,21 @@
 
                         <a href="topic-detail.html?id=${topic.id}" class="block">
                             <h2 class="text-base font-bold text-slate-100 group-hover:text-indigo-400 transition mb-2">
-                                ${topic.title}
+                                ${safeTitle}
                             </h2>
                             <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">
-                                ${topic.content}
+                                ${safeContent}
                             </p>
                         </a>
 
                         <div class="flex items-center justify-between pt-3 border-t border-slate-800/60 text-xs text-slate-400">
                             <!-- TIKLANABİLİR YAZAR PROFİL LİNKİ -->
-                            <a href="profile.html?u=${authorName}" class="flex items-center gap-2 hover:text-indigo-400 transition group/user">
+                            <a href="profile.html?u=${escapeAttr(authorName)}" class="flex items-center gap-2 hover:text-indigo-400 transition group/user">
                                 <div class="w-6 h-6 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-bold text-indigo-400 group-hover/user:scale-110 transition">
-                                    ${authorName.charAt(0).toUpperCase()}
+                                    ${escapeHtml(authorName.charAt(0).toUpperCase())}
                                 </div>
-                                <span class="font-medium text-slate-300 group-hover/user:text-indigo-400 transition">${authorName}</span>
+                                ${renderUserName(authorName, 'text-xs')}
+                                ${renderBadge(authorName)}
                             </a>
 
                             <div class="flex items-center gap-3">
@@ -177,15 +186,13 @@
         }
 
         async function likeTopic(topicId, btnElement) {
-            const storedUser = localStorage.getItem('currentUser');
-            const username = storedUser ? JSON.parse(storedUser).username : 'Anonim';
+            if (!isLoggedIn()) {
+                window.location.href = 'auth.html';
+                return;
+            }
 
             try {
-                const res = await fetch(`/api/topics/${topicId}/like`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username })
-                });
+                const res = await apiFetch(`/api/topics/${topicId}/like`, { method: 'POST' });
 
                 if (res.ok) {
                     const data = await res.json();
@@ -202,21 +209,178 @@
             } catch (err) {
                 console.error('Like Hatası:', err);
             }
-        }        // Canlı Arama Fonksiyonu
-        function searchTopics() {
-            const query = document.getElementById('search-input').value.toLowerCase().trim();
-            const topicCards = document.querySelectorAll('#topic-list article');
+        }        // ── ARAMA ───────────────────────────────────────────────
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        const topicList = document.getElementById('topic-list');
+        const categoryBar = document.getElementById('category-bar');
+        const searchClear = document.getElementById('search-clear');
 
-            topicCards.forEach(card => {
-                const title = card.querySelector('h2') ? card.querySelector('h2').innerText.toLowerCase() : '';
-                const content = card.querySelector('p') ? card.querySelector('p').innerText.toLowerCase() : '';
-                const author = card.querySelector('span.font-medium') ? card.querySelector('span.font-medium').innerText.toLowerCase() : '';
+        let searchTimer = null;
+        let searchSeq = 0; // geç dönen eski isteğin yenisini ezmesini önler
 
-                if (title.includes(query) || content.includes(query) || author.includes(query)) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(runSearch, 250);
+        });
+
+        function clearSearch() {
+            searchInput.value = '';
+            runSearch();
+            searchInput.focus();
+        }
+
+        function showBrowseMode() {
+            searchResults.classList.add('hidden');
+            searchResults.innerHTML = '';
+            topicList.classList.remove('hidden');
+            categoryBar.classList.remove('hidden');
+            searchClear.classList.add('hidden');
+        }
+
+        function showSearchMode() {
+            topicList.classList.add('hidden');
+            categoryBar.classList.add('hidden');
+            searchResults.classList.remove('hidden');
+            searchClear.classList.remove('hidden');
+        }
+
+        async function runSearch() {
+            const query = searchInput.value.trim();
+
+            if (query.length === 0) {
+                showBrowseMode();
+                return;
+            }
+
+            showSearchMode();
+
+            if (query.length < 2) {
+                searchResults.innerHTML = emptyBox('Aramak için en az 2 karakter yazın.');
+                return;
+            }
+
+            const seq = ++searchSeq;
+            searchResults.innerHTML = emptyBox('Aranıyor...', true);
+
+            try {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=20`);
+                if (seq !== searchSeq) return; // daha yeni bir arama başladı
+
+                if (!res.ok) {
+                    searchResults.innerHTML = emptyBox(await readError(res, 'Arama yapılamadı.'));
+                    return;
                 }
+
+                renderSearchResults(await res.json());
+            } catch (err) {
+                if (seq !== searchSeq) return;
+                console.error('Arama hatası:', err);
+                searchResults.innerHTML = emptyBox('Sunucuya bağlanılamadı.');
+            }
+        }
+
+        function emptyBox(message, pulse = false) {
+            return `<div class="text-center py-10 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
+                        <p class="text-slate-400 text-xs ${pulse ? 'animate-pulse' : ''}">${escapeHtml(message)}</p>
+                    </div>`;
+        }
+
+        function sectionHeader(icon, title, count) {
+            return `<div class="flex items-center gap-2 mb-3">
+                        <i data-lucide="${icon}" class="w-4 h-4 text-indigo-400"></i>
+                        <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wide">${title}</h3>
+                        <span class="text-[10px] font-bold text-indigo-300 bg-indigo-500/15 border border-indigo-500/25 px-2 py-0.5 rounded-full">${count}</span>
+                    </div>`;
+        }
+
+        function renderSearchResults(data) {
+            const q = data.query;
+            const total = data.totals.topics + data.totals.comments + data.totals.users;
+
+            if (total === 0) {
+                searchResults.innerHTML = emptyBox(`"${q}" için sonuç bulunamadı.`);
+                return;
+            }
+
+            let html = `<p class="text-[11px] text-slate-500">
+                            <strong class="text-slate-300">${escapeHtml(q)}</strong> için ${total} sonuç
+                        </p>`;
+
+            // ── Kullanıcılar ──
+            if (data.users.length > 0) {
+                html += `<section>${sectionHeader('users', 'Kullanıcılar', data.totals.users)}
+                    <div class="grid gap-2 sm:grid-cols-2">` +
+                    data.users.map(u => `
+                        <a href="profile.html?u=${escapeAttr(u.username)}"
+                           class="flex items-center gap-3 bg-slate-900/50 border border-slate-800/80 hover:border-indigo-500/40 rounded-2xl p-3 transition">
+                            <div class="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center overflow-hidden shrink-0">
+                                ${u.avatarUrl
+                            ? `<img src="${escapeHtml(u.avatarUrl)}" class="w-full h-full object-cover">`
+                            : `<span class="text-xs font-bold text-indigo-300">${escapeHtml(u.username.charAt(0).toUpperCase())}</span>`}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    ${renderUserName(u.username, 'text-xs')}
+                                    ${renderBadge(u.username)}
+                                </div>
+                                <p class="text-[11px] text-slate-500 truncate">${highlight(truncate(u.bio || 'Biyografi yok.', 60), q)}</p>
+                            </div>
+                        </a>`).join('') + `</div></section>`;
+            }
+
+            // ── Konular ──
+            if (data.topics.length > 0) {
+                html += `<section>${sectionHeader('file-text', 'Konular', data.totals.topics)}
+                    <div class="space-y-2">` +
+                    data.topics.map(t => `
+                        <a href="topic-detail.html?id=${t.id}"
+                           class="block bg-slate-900/50 border border-slate-800/80 hover:border-indigo-500/40 rounded-2xl p-4 transition">
+                            <div class="flex items-center justify-between gap-3 mb-1.5">
+                                <span class="text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
+                                    ${escapeHtml(categoryNames[t.categoryId] || 'Kategori #' + t.categoryId)}
+                                </span>
+                                <span class="text-[10px] text-slate-500">${formatDate(t.createdAt)}</span>
+                            </div>
+                            <h4 class="text-sm font-bold text-slate-100 mb-1">${highlight(t.title, q)}</h4>
+                            <p class="text-[11px] text-slate-400 leading-relaxed">${highlight(truncate(t.content, 180), q)}</p>
+                            <div class="flex items-center gap-2 mt-2 pt-2 border-t border-slate-800/60">
+                                ${renderUserName(t.authorUsername, 'text-[11px]')}
+                                ${renderBadge(t.authorUsername)}
+                                <span class="ml-auto text-[10px] text-slate-500 flex items-center gap-1">
+                                    <i data-lucide="heart" class="w-3 h-3 text-rose-500"></i> ${t.likeCount}
+                                </span>
+                            </div>
+                        </a>`).join('') + `</div></section>`;
+            }
+
+            // ── Yanıtlar ──
+            if (data.comments.length > 0) {
+                html += `<section>${sectionHeader('message-square', 'Yanıtlar', data.totals.comments)}
+                    <div class="space-y-2">` +
+                    data.comments.map(c => `
+                        <a href="topic-detail.html?id=${c.topicId}"
+                           class="block bg-slate-900/50 border border-slate-800/80 hover:border-indigo-500/40 rounded-2xl p-4 transition">
+                            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                                ${renderUserName(c.authorUsername, 'text-[11px]')}
+                                ${renderBadge(c.authorUsername)}
+                                <span class="ml-auto text-[10px] text-slate-500">${formatDate(c.createdAt)}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-300 leading-relaxed">${highlight(truncate(c.content, 180), q)}</p>
+                            <p class="text-[10px] text-slate-500 mt-2 pt-2 border-t border-slate-800/60 flex items-center gap-1">
+                                <i data-lucide="corner-down-right" class="w-3 h-3"></i>
+                                ${escapeHtml(c.topicTitle)}
+                            </p>
+                        </a>`).join('') + `</div></section>`;
+            }
+
+            searchResults.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function formatDate(value) {
+            return new Date(value).toLocaleDateString('tr-TR', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
             });
         }
 
@@ -229,48 +393,16 @@
             fetchTopics(catId);
         }
 
-        function checkUserSession() {
-            const userNav = document.getElementById('user-nav-area');
-            if (!userNav) return;
-
-            const storedUser = localStorage.getItem('currentUser');
-
-            if (storedUser) {
-                const user = JSON.parse(storedUser);
-                userNav.innerHTML = `
-                    <div class="flex items-center gap-3 bg-slate-950/80 border border-slate-800/80 pl-2 pr-3 py-1.5 rounded-xl text-xs">
-                        <a href="profile.html?u=${user.username}" class="flex items-center gap-2 hover:text-indigo-400 transition group cursor-pointer">
-                            <div class="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0 group-hover:border-indigo-500/50">
-                                <i data-lucide="user" class="w-4 h-4 text-indigo-400"></i>
-                            </div>
-                            <span class="text-slate-200 font-semibold group-hover:text-indigo-400 transition">${user.username}</span>
-                        </a>
-                        <button onclick="logout()" title="Çıkış Yap" class="text-slate-500 hover:text-rose-400 transition ml-1 p-1">
-                            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-                `;
-            } else {
-                userNav.innerHTML = `
-                    <a href="auth.html" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700">
-                        <i data-lucide="user" class="w-4 h-4"></i> Giriş Yap / Kayıt
-                    </a>
-                `;
-            }
-
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem('currentUser');
-            window.location.reload();
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
-            checkUserSession();
+            renderUserNav();
             fetchTopics(0);
+
+            // index.html?q=... ile gelen aramayı otomatik çalıştır (paylaşılabilir link).
+            const initialQuery = new URLSearchParams(window.location.search).get('q');
+            if (initialQuery) {
+                searchInput.value = initialQuery;
+                runSearch();
+            }
         });
     </script>
 </body>

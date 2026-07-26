@@ -1,4 +1,3 @@
 {
-    "cmake.sourceDirectory": "/home/berkay/korsancim/backend",
-    "C_Cpp.errorSquiggles": "disabled"
+    "dotnet.defaultSolution": "ForumApi/ForumApi.csproj"
 }

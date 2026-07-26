@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using ForumApi.Data;
 using ForumApi.Models;
+using ForumApi.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,24 +13,40 @@ namespace ForumApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IPasswordHasher<User> _passwordHasher;
+        private readonly TokenService _tokenService;
 
-        public AuthController(AppDbContext context)
+        public AuthController(AppDbContext context, IPasswordHasher<User> passwordHasher, TokenService tokenService)
         {
             _context = context;
+            _passwordHasher = passwordHasher;
+            _tokenService = tokenService;
         }
 
         // Kayıt Modeli
         public class RegisterDto
         {
+            [Required(ErrorMessage = "Kullanıcı adı zorunludur.")]
+            [StringLength(32, MinimumLength = 3, ErrorMessage = "Kullanıcı adı 3-32 karakter olmalıdır.")]
+            [RegularExpression("^[a-zA-Z0-9_.-]+$", ErrorMessage = "Kullanıcı adı yalnızca harf, rakam, _ . - içerebilir.")]
             public string Username { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "E-posta zorunludur.")]
+            [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi girin.")]
             public string Email { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Şifre zorunludur.")]
+            [StringLength(128, MinimumLength = 8, ErrorMessage = "Şifre en az 8 karakter olmalıdır.")]
             public string Password { get; set; } = string.Empty;
         }
 
         // Giriş Modeli
         public class LoginDto
         {
+            [Required]
             public string UsernameOrEmail { get; set; } = string.Empty;
+
+            [Required]
             public string Password { get; set; } = string.Empty;
         }
 
@@ -35,12 +54,12 @@ namespace ForumApi.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password))
-            {
-                return BadRequest(new { error = "Kullanıcı adı ve şifre zorunludur." });
-            }
+            // Model doğrulaması [ApiController] tarafından otomatik yapılıyor;
+            // hata formatı Program.cs'te { error } olarak ayarlandı.
+            var userExists = await _context.Users
+                .AnyAsync(u => u.Username.ToLower() == dto.Username.ToLower()
+                            || u.Email.ToLower() == dto.Email.ToLower());
 
-            var userExists = await _context.Users.AnyAsync(u => u.Username == dto.Username || u.Email == dto.Email);
             if (userExists)
             {
                 return BadRequest(new { error = "Bu kullanıcı adı veya e-posta adresi zaten kullanılıyor." });
@@ -50,30 +69,71 @@ namespace ForumApi.Controllers
             {
                 Username = dto.Username,
                 Email = dto.Email,
-                PasswordHash = dto.Password, // İleride hashleme mantığı geliştirilebilir
                 CreatedAt = DateTime.UtcNow
             };
+            user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok(new { success = true, message = "Kayıt başarılı! Şimdi giriş yapabilirsiniz.", username = user.Username });
+            return Ok(new
+            {
+                success = true,
+                message = "Kayıt başarılı! Şimdi giriş yapabilirsiniz.",
+                username = user.Username
+            });
         }
 
         // 2. Kullanıcı Girişi (POST: /api/auth/login)
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => 
-                (u.Username == dto.UsernameOrEmail || u.Email == dto.UsernameOrEmail) && 
-                u.PasswordHash == dto.Password);
+            var user = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Username.ToLower() == dto.UsernameOrEmail.ToLower() ||
+                u.Email.ToLower() == dto.UsernameOrEmail.ToLower());
+
+            // Kullanıcı adı ile şifre hatasını ayırt etmiyoruz — kullanıcı adı
+            // sayımını (enumeration) engellemek için tek ve aynı mesajı dönüyoruz.
+            const string invalidCredentials = "Kullanıcı adı/e-posta veya şifre hatalı!";
 
             if (user == null)
             {
-                return BadRequest(new { error = "Kullanıcı adı/e-posta veya şifre hatalı!" });
+                return BadRequest(new { error = invalidCredentials });
             }
 
-            return Ok(new { success = true, username = user.Username, email = user.Email, userId = user.Id });
+            PasswordVerificationResult result;
+            try
+            {
+                result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password);
+            }
+            catch (FormatException)
+            {
+                // Kayıtlı değer geçerli bir hash formatında değil (ör. eski düz
+                // metin kayıtlar). Girişi reddet, 500 döndürme.
+                return BadRequest(new { error = invalidCredentials });
+            }
+
+            if (result == PasswordVerificationResult.Failed)
+            {
+                return BadRequest(new { error = invalidCredentials });
+            }
+
+            // Hash parametreleri eskiyse (iterasyon sayısı vb.) sessizce yenile.
+            if (result == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new
+            {
+                success = true,
+                token = _tokenService.CreateToken(user),
+                expiresInHours = TokenService.ExpiryHours,
+                username = user.Username,
+                email = user.Email,
+                userId = user.Id
+            });
         }
     }
 }

@@ -4,9 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yeni Konu Aç - DevForum</title>
+    <title>Yeni Konu Aç - KORSANCIM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/app.css">
+    <script src="js/app.js"></script>
 </head>
 
 <body
@@ -17,9 +19,9 @@
         <a href="index.html" class="flex items-center gap-3">
             <div
                 class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-600/30">
-                F</div>
+                K</div>
             <span
-                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">DevForum</span>
+                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">KORSANCIM</span>
         </a>
         <div class="flex items-center gap-3">
             <div id="user-nav-area"></div>
@@ -69,8 +71,9 @@
                     </div>
                     <div
                         class="relative border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-2xl p-6 text-center transition bg-slate-950/40 group cursor-pointer">
-                        <!-- Klasör ve Çoklu Dosya Yükleme Input'u -->
-                        <input type="file" id="topic-files" multiple webkitdirectory directory
+                        <!-- Çoklu Görsel Yükleme Input'u -->
+                        <input type="file" id="topic-files" multiple
+                            accept="image/jpeg,image/png,image/gif,image/webp"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             onchange="handleFileSelect(event)">
 
@@ -79,10 +82,10 @@
                                 class="w-10 h-10 rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:scale-110 transition duration-300">
                                 <i data-lucide="folder-up" class="w-5 h-5"></i>
                             </div>
-                            <p class="text-xs text-slate-300 font-medium">Dosya/Klasör seçmek için tıklayın veya buraya
+                            <p class="text-xs text-slate-300 font-medium">Görsel seçmek için tıklayın veya buraya
                                 sürükleyin</p>
-                            <p class="text-[11px] text-slate-500">Çoklu dosya, resim, video veya komple klasör
-                                yükleyebilirsiniz</p>
+                            <p class="text-[11px] text-slate-500">JPG, PNG, GIF veya WEBP — en fazla 5 dosya, dosya
+                                başına 5 MB</p>
                         </div>
                     </div>
 
@@ -143,13 +146,13 @@
                     item.className = 'flex items-center justify-between bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-1.5 text-xs';
 
                     // Dosya yolu klasörlü ise relativePath göster
-                    const fileName = file.webkitRelativePath || file.name;
+                    const fileName = file.name;
                     const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
 
                     item.innerHTML = `
                         <div class="flex items-center gap-2 min-w-0">
                             <i data-lucide="file" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i>
-                            <span class="truncate max-w-xs text-slate-300 font-medium">${fileName}</span>
+                            <span class="truncate max-w-xs text-slate-300 font-medium">${escapeHtml(fileName)}</span>
                         </div>
                         <span class="text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 shrink-0">${fileSizeMB} MB</span>
                     `;
@@ -174,14 +177,10 @@
             formData.append('title', document.getElementById('topic-title').value);
             formData.append('categoryId', document.getElementById('topic-category').value);
             formData.append('content', document.getElementById('topic-content').value);
-            formData.append('termsAccepted', document.getElementById('legal-terms').checked);
+            // Alan adı DTO ile birebir aynı olmalı; 'termsAccepted' sunucuya ulaşmıyordu.
+            formData.append('isLegalTermsAccepted', document.getElementById('legal-terms').checked);
 
-            // Kullanıcı giriş yapmışsa kullanıcı adını ekle
-            const storedUser = localStorage.getItem('currentUser');
-            if (storedUser) {
-                const user = JSON.parse(storedUser);
-                formData.append('authorUsername', user.username);
-            }
+            // Yazar sunucuda token'dan belirleniyor — istemci göndermiyor.
 
             // Seçilen tüm dosyaları FormData'ya ekle
             if (selectedFilesArray.length > 0) {
@@ -195,26 +194,21 @@
             lucide.createIcons();
 
             try {
-                // C# API Bağlantısı (Port: 5085)
-                const response = await fetch('http://localhost:5085/api/topics', {
+                // Content-Type belirtilmiyor; tarayıcı multipart sınırını kendi ekler.
+                const response = await apiFetch('/api/topics', {
                     method: 'POST',
                     body: formData
                 });
 
-                const result = await response.json();
-
                 if (response.ok) {
-                    alert('Tebrikler! Konunuz ve dosyalarınız başarıyla yayınlandı.');
                     window.location.href = 'index.html';
                 } else {
-                    // API Hata verirse Kırmızı Kutuda Göster
-                    errorText.innerText = result.error || 'Konu gönderilemedi. Lütfen bilgileri kontrol edin.';
+                    errorText.innerText = await readError(response, 'Konu gönderilemedi. Lütfen bilgileri kontrol edin.');
                     errorBox.classList.remove('hidden');
                 }
             } catch (error) {
                 console.error('Bağlantı hatası:', error);
-                // Bağlantı koparsa Kırmızı Kutuda Göster
-                errorText.innerText = 'C# Sunucusuna bağlanılamadı! Lütfen terminalde "dotnet run" (Port 5085) çalıştığından emin olun.';
+                errorText.innerText = 'Sunucuya bağlanılamadı. Lütfen tekrar deneyin.';
                 errorBox.classList.remove('hidden');
             } finally {
                 submitBtn.disabled = false;
@@ -223,46 +217,11 @@
             }
         });
 
-        // Varsayılan SVG Avatar
-        const DEFAULT_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="%23818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
-
-        function checkUserSession() {
-            const userNav = document.getElementById('user-nav-area');
-            if (!userNav) return;
-
-            const storedUser = localStorage.getItem('currentUser');
-
-            if (storedUser) {
-                const user = JSON.parse(storedUser);
-                const avatarSrc = user.avatarUrl || DEFAULT_AVATAR;
-
-                userNav.innerHTML = `
-            <div class="flex items-center gap-3 bg-slate-950/80 border border-slate-800/80 pl-2 pr-3 py-1.5 rounded-xl text-xs">
-                <div class="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center overflow-hidden">
-                    <img src="${avatarSrc}" alt="Avatar" class="w-full h-full object-cover">
-                </div>
-                <span class="text-slate-200 font-semibold">${user.username}</span>
-                <button onclick="logout()" title="Çıkış Yap" class="text-slate-500 hover:text-rose-400 transition ml-1 p-1">
-                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
-                </button>
-            </div>
-        `;
-            } else {
-                userNav.innerHTML = `
-            <a href="auth.html" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700">
-                <i data-lucide="user" class="w-4 h-4"></i> Giriş Yap / Kayıt
-            </a>
-        `;
-            }
-            lucide.createIcons();
-        }
-
-        function logout() {
-            localStorage.removeItem('currentUser');
-            checkUserSession();
-        }
-
-        document.addEventListener('DOMContentLoaded', checkUserSession);
+        document.addEventListener('DOMContentLoaded', () => {
+            // Konu açmak giriş gerektiriyor.
+            if (!requireLogin()) return;
+            renderUserNav();
+        });
     </script>
 </body>
 

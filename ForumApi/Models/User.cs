@@ -12,6 +12,7 @@ namespace ForumApi.Models
         
         // Yeni Profil & Özelleştirme Alanları
         public string? Bio { get; set; }
+        public string? AvatarUrl { get; set; }
         public string? BannerUrl { get; set; }
         public string? GithubUrl { get; set; }
         public string? WebsiteUrl { get; set; }

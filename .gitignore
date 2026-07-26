@@ -1,0 +1,22 @@
+# .NET build çıktıları
+bin/
+obj/
+*.user
+*.suo
+
+# SQLite veritabanı (yerel geliştirme verisi)
+*.db
+*.db-shm
+*.db-wal
+
+# Kullanıcı yüklemeleri
+ForumApi/wwwroot/uploads/
+
+# IDE / editör
+.vs/
+.idea/
+.cache/
+
+# İşletim sistemi
+.DS_Store
+Thumbs.db

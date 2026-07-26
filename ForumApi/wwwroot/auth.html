@@ -4,9 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş Yap / Kayıt Ol - DevForum</title>
+    <title>Giriş Yap / Kayıt Ol - KORSANCIM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/app.css">
+    <script src="js/app.js"></script>
 </head>
 
 <body
@@ -16,9 +18,9 @@
         <a href="index.html" class="flex items-center justify-center gap-3 mb-6">
             <div
                 class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-600/30">
-                F</div>
+                K</div>
             <span
-                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">DevForum</span>
+                class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">KORSANCIM</span>
         </a>
 
         <!-- Sekme Değiştirici -->
@@ -57,7 +59,7 @@
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-300 mb-1">E-Posta Adresi</label>
-                <input type="email" id="reg-email" required placeholder="ornek@devforum.com"
+                <input type="email" id="reg-email" required placeholder="ornek@korsancim.com"
                     class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
             </div>
             <div>
@@ -75,7 +77,8 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:5085/api/auth';
+        // Göreli yol — arayüz API ile aynı origin'den servis ediliyor.
+        const API_BASE = '/api/auth';
 
         function switchTab(tab) {
             const loginForm = document.getElementById('login-form');
@@ -122,13 +125,8 @@
 
                 const data = await res.json();
                 if (res.ok) {
-                    // Kullanıcı bilgilerini LocalStorage'a yazıyoruz
-                    localStorage.setItem('currentUser', JSON.stringify({
-                        userId: data.userId,
-                        username: data.username,
-                        email: data.email,
-                        avatarUrl: null // Şimdilik varsayılan profil resmi kullanılacak
-                    }));
+                    // Token ve kullanıcı bilgisi tek yerden yönetiliyor (js/app.js).
+                    saveSession(data);
 
                     showAlert('Giriş başarılı! Ana sayfaya yönlendiriliyorsunuz...', true);
                     setTimeout(() => window.location.href = 'index.html', 800);
