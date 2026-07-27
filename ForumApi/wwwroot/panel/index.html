@@ -31,8 +31,29 @@
         </div>
 
         <div class="card p-5">
+            <h2 class="text-sm font-bold text-ink mb-3">Son 14 gün — büyüme</h2>
+            <div id="growth-chart" class="space-y-4"></div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+            <div class="card p-5">
+                <h2 class="text-sm font-bold text-ink mb-3">En aktif kullanıcılar</h2>
+                <div id="top-active-users" class="space-y-2"></div>
+            </div>
+            <div class="card p-5">
+                <h2 class="text-sm font-bold text-ink mb-3">En çok şikayet edilenler</h2>
+                <div id="top-reported-users" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <div class="card p-5">
             <h2 class="text-sm font-bold text-ink mb-3">Kategoriye göre konu dağılımı</h2>
             <div id="category-breakdown" class="space-y-3"></div>
+        </div>
+
+        <div class="card p-5">
+            <h2 class="text-sm font-bold text-ink mb-3">Aktivite akışı</h2>
+            <div id="activity-feed" class="space-y-3"></div>
         </div>
     </main>
 
@@ -83,7 +104,75 @@
                     </div>`).join('')
                 : `<p class="hint">Henüz kategori yok.</p>`;
 
+            renderGrowthChart(s.growth);
+            renderTopActiveUsers(s.topActiveUsers);
+            renderTopReportedUsers(s.topReportedUsers);
+            renderActivityFeed(s.activityFeed);
+
             lucide.createIcons();
+        }
+
+        function growthSeries(label, data, key, colorClass) {
+            const max = Math.max(1, ...data.map(d => d[key]));
+            const bars = data.map(d => `
+                <div class="flex-1 flex flex-col items-center gap-1" title="${escapeAttr(d.date)}: ${d[key]}">
+                    <div class="w-full ${colorClass} rounded-sm" style="height:${Math.max(2, (d[key] / max) * 48)}px"></div>
+                </div>`).join('');
+
+            return `
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-ink-soft">${label}</span>
+                        <span class="hint">toplam ${data.reduce((sum, d) => sum + d[key], 0)}</span>
+                    </div>
+                    <div class="flex items-end gap-1 h-12">${bars}</div>
+                </div>`;
+        }
+
+        function renderGrowthChart(growth) {
+            document.getElementById('growth-chart').innerHTML = growth?.length
+                ? [
+                    growthSeries('Yeni üye', growth, 'newUsers', 'bg-accent'),
+                    growthSeries('Yeni konu', growth, 'newTopics', 'bg-ok'),
+                    growthSeries('Yeni yorum', growth, 'newComments', 'bg-accent-soft')
+                ].join('')
+                : `<p class="hint">Henüz veri yok.</p>`;
+        }
+
+        function renderTopActiveUsers(users) {
+            document.getElementById('top-active-users').innerHTML = users?.length
+                ? users.map(u => `
+                    <a href="../profile.html?u=${escapeAttr(u.username)}" class="flex items-center justify-between text-sm hover:text-accent-soft transition">
+                        <span class="truncate">${escapeHtml(u.username)}</span>
+                        <span class="hint shrink-0">${u.activityCount} işlem</span>
+                    </a>`).join('')
+                : `<p class="hint">Henüz aktivite yok.</p>`;
+        }
+
+        function renderTopReportedUsers(users) {
+            document.getElementById('top-reported-users').innerHTML = users?.length
+                ? users.map(u => `
+                    <a href="../profile.html?u=${escapeAttr(u.username)}" class="flex items-center justify-between text-sm hover:text-accent-soft transition">
+                        <span class="truncate">${escapeHtml(u.username)}</span>
+                        <span class="text-bad shrink-0">${u.reportCount} şikayet</span>
+                    </a>`).join('')
+                : `<p class="hint">Şikayet edilen kullanıcı yok.</p>`;
+        }
+
+        const FEED_ICON = { topic: 'file-text', comment: 'message-square', signup: 'user-plus', report: 'flag' };
+        const FEED_LABEL = { topic: 'yeni konu', comment: 'yeni yorum', signup: 'yeni üye', report: 'yeni şikayet' };
+
+        function renderActivityFeed(feed) {
+            document.getElementById('activity-feed').innerHTML = feed?.length
+                ? feed.map(a => `
+                    <div class="flex items-start gap-2 text-sm">
+                        <i data-lucide="${FEED_ICON[a.type] || 'circle'}" class="w-3.5 h-3.5 mt-0.5 text-ink-faint shrink-0"></i>
+                        <div class="min-w-0">
+                            <span class="text-ink-soft">${a.username ? escapeHtml(a.username) + ' — ' : ''}${FEED_LABEL[a.type] || a.type}${a.text ? ': ' + escapeHtml(a.text) : ''}</span>
+                            <span class="hint block">${escapeHtml(timeAgo(a.createdAt))}</span>
+                        </div>
+                    </div>`).join('')
+                : `<p class="hint">Henüz aktivite yok.</p>`;
         }
 
         document.addEventListener('DOMContentLoaded', () => {

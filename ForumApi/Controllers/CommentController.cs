@@ -47,6 +47,7 @@ namespace ForumApi.Controllers
             c.UserId,
             AuthorUsername = c.User?.Username ?? "(silinmiş kullanıcı)",
             AuthorAvatarUrl = c.User?.AvatarUrl,
+            Badge = BadgeSummary.From(c.User?.Badge),
             c.LikeCount,
             c.CreatedAt,
             c.UpdatedAt
@@ -57,7 +58,7 @@ namespace ForumApi.Controllers
         public async Task<IActionResult> GetCommentsByTopic(int topicId)
         {
             var comments = await _context.Comments
-                .Include(c => c.User)
+                .Include(c => c.User).ThenInclude(u => u!.Badge)
                 .Where(c => c.TopicId == topicId)
                 .OrderBy(c => c.CreatedAt)
                 .ToListAsync();
@@ -88,6 +89,10 @@ namespace ForumApi.Controllers
             await _context.SaveChangesAsync();
 
             await _context.Entry(comment).Reference(c => c.User).LoadAsync();
+            if (comment.User != null)
+            {
+                await _context.Entry(comment.User).Reference(u => u.Badge).LoadAsync();
+            }
 
             return Ok(ToDto(comment));
         }
@@ -99,7 +104,7 @@ namespace ForumApi.Controllers
         public async Task<IActionResult> UpdateComment(int id, [FromBody] UpdateCommentDto dto)
         {
             var comment = await _context.Comments
-                .Include(c => c.User)
+                .Include(c => c.User).ThenInclude(u => u!.Badge)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (comment == null) return NotFound(new { error = "Yorum bulunamadı." });

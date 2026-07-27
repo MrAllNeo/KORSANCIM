@@ -33,6 +33,7 @@
                         <tr class="text-left text-ink-faint text-xs border-b border-line">
                             <th class="p-3 font-medium">Kullanıcı</th>
                             <th class="p-3 font-medium">Rol</th>
+                            <th class="p-3 font-medium">Rozet</th>
                             <th class="p-3 font-medium">Durum</th>
                             <th class="p-3 font-medium">Kayıt</th>
                             <th class="p-3 font-medium text-right">İşlemler</th>
@@ -40,7 +41,7 @@
                     </thead>
                     <tbody id="user-rows">
                         <tr>
-                            <td colspan="5" class="p-6 text-center hint">Yükleniyor…</td>
+                            <td colspan="6" class="p-6 text-center hint">Yükleniyor…</td>
                         </tr>
                     </tbody>
                 </table>
@@ -76,7 +77,7 @@
 
         function roleBadge(role) {
             if (role === 'Owner') {
-                return `<span class="tier-badge tier-shine tier-creator-badge text-[10px] px-2 py-0.5 rounded-md">Owner</span>`;
+                return `<span class="tier-badge tier-shine tier-badge-gold text-[10px] px-2 py-0.5 rounded-md">Owner</span>`;
             }
             const cls = ROLE_BADGE_CLASS[role] || ROLE_BADGE_CLASS.User;
             return `<span class="text-[10px] px-2 py-0.5 rounded-md ${cls}">${escapeHtml(role)}</span>`;
@@ -88,6 +89,25 @@
             const roles = ['User', 'Moderator', 'Admin'];
             const options = roles.map(r => `<option value="${r}" ${r === user.role ? 'selected' : ''}>${r}</option>`).join('');
             return `<select data-user-id="${user.id}" class="role-select input" style="padding:4px 8px;font-size:12px;width:auto;">${options}</select>`;
+        }
+
+        let badgeOptions = [];
+
+        async function loadBadgeOptions() {
+            const res = await apiFetch('/api/admin/badges');
+            if (res.ok) badgeOptions = await res.json();
+        }
+
+        function badgeCell(user) {
+            if (!isAdmin()) {
+                return user.badge ? renderBadge(user.badge) : '<span class="hint">—</span>';
+            }
+
+            const options = ['<option value="">(rozet yok)</option>']
+                .concat(badgeOptions.map(b =>
+                    `<option value="${b.id}" ${user.badge && user.badge.id === b.id ? 'selected' : ''}>${escapeHtml(b.name)}</option>`))
+                .join('');
+            return `<select data-badge-user-id="${user.id}" class="badge-select input" style="padding:4px 8px;font-size:12px;width:auto;">${options}</select>`;
         }
 
         async function loadUsers(page = 1) {
@@ -108,6 +128,7 @@
                             <div class="hint">${escapeHtml(u.email)}</div>
                         </td>
                         <td class="p-3">${roleCell(u)}</td>
+                        <td class="p-3">${badgeCell(u)}</td>
                         <td class="p-3">
                             ${u.isBanned
                         ? `<span class="text-[10px] px-2 py-0.5 rounded-md bg-bad/15 text-bad border border-bad/30">Banlı</span>`
@@ -123,7 +144,7 @@
                             </div>
                         </td>
                     </tr>`).join('')
-                : `<tr><td colspan="5" class="p-6 text-center hint">Kullanıcı bulunamadı.</td></tr>`;
+                : `<tr><td colspan="6" class="p-6 text-center hint">Kullanıcı bulunamadı.</td></tr>`;
 
             document.querySelectorAll('[data-ban-id]').forEach(btn =>
                 btn.addEventListener('click', () => openBanModal(Number(btn.dataset.banId))));
@@ -131,6 +152,8 @@
                 btn.addEventListener('click', () => unban(Number(btn.dataset.unbanId))));
             document.querySelectorAll('.role-select').forEach(sel =>
                 sel.addEventListener('change', () => changeRole(Number(sel.dataset.userId), sel.value)));
+            document.querySelectorAll('.badge-select').forEach(sel =>
+                sel.addEventListener('change', () => assignBadge(Number(sel.dataset.badgeUserId), sel.value)));
 
             renderPagination('pagination', data.page, data.totalPages, loadUsers);
         }
@@ -174,6 +197,14 @@
             loadUsers(currentPage);
         }
 
+        async function assignBadge(id, badgeId) {
+            const res = await apiFetchJson(`/api/admin/users/${id}/badge`, 'PUT', { badgeId: badgeId ? Number(badgeId) : null });
+            if (!res.ok) {
+                alert(await readError(res, 'Rozet güncellenemedi.'));
+            }
+            loadUsers(currentPage);
+        }
+
         document.getElementById('search-input').addEventListener('input', (e) => {
             clearTimeout(searchDebounce);
             searchDebounce = setTimeout(() => {
@@ -182,9 +213,10 @@
             }, 300);
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             if (!requireStaff()) return;
             renderPanelNav('users');
+            if (isAdmin()) await loadBadgeOptions();
             loadUsers();
         });
     </script>

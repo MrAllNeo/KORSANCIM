@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
 using ForumApi.Data;
@@ -79,6 +80,43 @@ namespace ForumApi.Controllers
             public string? ResolutionNote { get; set; }
         }
 
+        public class BadgeDto
+        {
+            [Required(ErrorMessage = "Rozet adı zorunludur.")]
+            [StringLength(40, MinimumLength = 2, ErrorMessage = "Rozet adı 2-40 karakter olmalıdır.")]
+            public string Name { get; set; } = string.Empty;
+
+            [StringLength(30, ErrorMessage = "İkon adı en fazla 30 karakter olabilir.")]
+            public string? Icon { get; set; }
+
+            [Required(ErrorMessage = "Renk teması zorunludur.")]
+            public string ColorTheme { get; set; } = string.Empty;
+
+            public bool Shine { get; set; } = false;
+        }
+
+        public class AssignBadgeDto
+        {
+            // null = rozeti kaldır.
+            public int? BadgeId { get; set; }
+        }
+
+        public class CategoryDto
+        {
+            [Required(ErrorMessage = "Kategori adı zorunludur.")]
+            [StringLength(60, MinimumLength = 2, ErrorMessage = "Kategori adı 2-60 karakter olmalıdır.")]
+            public string Name { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Açıklama zorunludur.")]
+            [StringLength(200, ErrorMessage = "Açıklama en fazla 200 karakter olabilir.")]
+            public string Description { get; set; } = string.Empty;
+
+            [StringLength(30, ErrorMessage = "İkon adı en fazla 30 karakter olabilir.")]
+            public string Icon { get; set; } = "hash";
+
+            public int DisplayOrder { get; set; } = 0;
+        }
+
         // GET: api/admin/stats — panel dashboard'u için toplu sayımlar.
         [HttpGet("stats")]
         public async Task<IActionResult> GetStats()
@@ -98,6 +136,94 @@ namespace ForumApi.Controllers
                 .Select(c => new { c.Name, Count = c.Topics.Count })
                 .ToListAsync();
 
+            // Son 14 günün günlük büyüme grafiği. Sağlayıcı-bağımsız olması için
+            // tarihler belleğe çekilip C# tarafında günlere bölünüyor.
+            var since14d = DateTime.UtcNow.Date.AddDays(-13);
+
+            var userDates = await _context.Users.Where(u => u.CreatedAt >= since14d).Select(u => u.CreatedAt).ToListAsync();
+            var topicDates = await _context.Topics.Where(t => t.CreatedAt >= since14d).Select(t => t.CreatedAt).ToListAsync();
+            var commentDates = await _context.Comments.Where(c => c.CreatedAt >= since14d).Select(c => c.CreatedAt).ToListAsync();
+
+            var days = Enumerable.Range(0, 14).Select(i => since14d.AddDays(i)).ToList();
+
+            var growth = days.Select(day => new
+            {
+                date = day.ToString("yyyy-MM-dd"),
+                newUsers = userDates.Count(d => d.Date == day),
+                newTopics = topicDates.Count(d => d.Date == day),
+                newComments = commentDates.Count(d => d.Date == day)
+            }).ToList();
+
+            // En aktif kullanıcılar — konu + yorum toplamına göre.
+            var topicCounts = await _context.Topics.GroupBy(t => t.UserId).Select(g => new { g.Key, Count = g.Count() }).ToListAsync();
+            var commentCounts = await _context.Comments.GroupBy(c => c.UserId).Select(g => new { g.Key, Count = g.Count() }).ToListAsync();
+
+            var activityByUser = new Dictionary<int, int>();
+            foreach (var t in topicCounts) activityByUser[t.Key] = activityByUser.GetValueOrDefault(t.Key) + t.Count;
+            foreach (var c in commentCounts) activityByUser[c.Key] = activityByUser.GetValueOrDefault(c.Key) + c.Count;
+
+            var topUserIds = activityByUser.OrderByDescending(kv => kv.Value).Take(5).Select(kv => kv.Key).ToList();
+            var topUserNames = await _context.Users.Where(u => topUserIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Username);
+
+            var topActiveUsers = topUserIds
+                .Where(id => topUserNames.ContainsKey(id))
+                .Select(id => new { userId = id, username = topUserNames[id], activityCount = activityByUser[id] })
+                .ToList();
+
+            // En çok şikayet edilen kullanıcılar (yalnızca hedef türü User olanlar).
+            var reportedUserCounts = await _context.Reports
+                .Where(r => r.TargetType == ReportTargetType.User)
+                .GroupBy(r => r.TargetId)
+                .Select(g => new { UserId = g.Key, Count = g.Count() })
+                .OrderByDescending(g => g.Count)
+                .Take(5)
+                .ToListAsync();
+
+            var reportedUserIds = reportedUserCounts.Select(r => r.UserId).ToList();
+            var reportedUserNames = await _context.Users.Where(u => reportedUserIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Username);
+
+            var topReportedUsers = reportedUserCounts
+                .Where(r => reportedUserNames.ContainsKey(r.UserId))
+                .Select(r => new { userId = r.UserId, username = reportedUserNames[r.UserId], reportCount = r.Count })
+                .ToList();
+
+            // Karma aktivite akışı: son konular/yorumlar/üyelikler/şikayetler tek
+            // zaman çizgisinde birleştirilir (her tablo ayrı, gerçek bir join yok).
+            var recentTopics = await _context.Topics.Include(t => t.User)
+                .OrderByDescending(t => t.CreatedAt).Take(8)
+                .Select(t => new { Type = "topic", Text = (string?)t.Title, Username = (string?)t.User!.Username, t.CreatedAt })
+                .ToListAsync();
+
+            var recentComments = await _context.Comments.Include(c => c.User)
+                .OrderByDescending(c => c.CreatedAt).Take(8)
+                .Select(c => new { Type = "comment", Text = (string?)c.Content, Username = (string?)c.User!.Username, c.CreatedAt })
+                .ToListAsync();
+
+            var recentUsers = await _context.Users
+                .OrderByDescending(u => u.CreatedAt).Take(8)
+                .Select(u => new { Type = "signup", Text = (string?)null, Username = (string?)u.Username, u.CreatedAt })
+                .ToListAsync();
+
+            var recentReports = await _context.Reports
+                .OrderByDescending(r => r.CreatedAt).Take(8)
+                .Select(r => new { Type = "report", Text = (string?)r.Reason, Username = (string?)null, r.CreatedAt })
+                .ToListAsync();
+
+            var activityFeed = recentTopics
+                .Concat(recentComments)
+                .Concat(recentUsers)
+                .Concat(recentReports)
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(15)
+                .Select(a => new
+                {
+                    a.Type,
+                    text = a.Text != null && a.Text.Length > 80 ? a.Text[..80] + "…" : a.Text,
+                    a.Username,
+                    a.CreatedAt
+                })
+                .ToList();
+
             return Ok(new
             {
                 totalUsers,
@@ -107,7 +233,11 @@ namespace ForumApi.Controllers
                 pendingReports,
                 newUsersLast24h,
                 newTopicsLast24h,
-                topicsByCategory
+                topicsByCategory,
+                growth,
+                topActiveUsers,
+                topReportedUsers,
+                activityFeed
             });
         }
 
@@ -140,6 +270,7 @@ namespace ForumApi.Controllers
                     u.Role,
                     u.IsBanned,
                     u.BanReason,
+                    Badge = u.Badge == null ? null : new { u.Badge.Id, u.Badge.Name, u.Badge.Icon, u.Badge.ColorTheme, u.Badge.Shine },
                     u.CreatedAt
                 })
                 .ToListAsync();
@@ -388,6 +519,191 @@ namespace ForumApi.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Şikayet güncellendi.", reportId = report.Id, status = report.Status });
+        }
+
+        // ── Rozetler ─────────────────────────────────────────────
+        // Tanımlama/silme Owner'a özel — site kimliğine ait yeni bir "ünvan"
+        // yaratmak, mevcut kullanıcılara rozet atamaktan (Admin+) daha büyük
+        // bir karardır. Atama AssignBadge ile Admin+'a açık.
+
+        // GET: api/admin/badges
+        [HttpGet("badges")]
+        public async Task<IActionResult> GetBadges()
+        {
+            var badges = await _context.Badges
+                .OrderBy(b => b.Id)
+                .Select(b => new { b.Id, b.Name, b.Icon, b.ColorTheme, b.Shine, UserCount = b.Users.Count })
+                .ToListAsync();
+
+            return Ok(badges);
+        }
+
+        // POST: api/admin/badges
+        [Authorize(Roles = Roles.Owner)]
+        [HttpPost("badges")]
+        public async Task<IActionResult> CreateBadge([FromBody] BadgeDto dto)
+        {
+            if (!BadgeThemes.IsValid(dto.ColorTheme))
+            {
+                return BadRequest(new { error = $"Geçersiz tema. Geçerli değerler: {string.Join(", ", BadgeThemes.All)}" });
+            }
+
+            var badge = new Badge
+            {
+                Name = dto.Name.Trim(),
+                Icon = string.IsNullOrWhiteSpace(dto.Icon) ? null : dto.Icon.Trim(),
+                ColorTheme = dto.ColorTheme,
+                Shine = dto.Shine
+            };
+
+            _context.Badges.Add(badge);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Rozet oluşturuldu.", badgeId = badge.Id });
+        }
+
+        // PUT: api/admin/badges/5
+        [Authorize(Roles = Roles.Owner)]
+        [HttpPut("badges/{id}")]
+        public async Task<IActionResult> UpdateBadge(int id, [FromBody] BadgeDto dto)
+        {
+            if (!BadgeThemes.IsValid(dto.ColorTheme))
+            {
+                return BadRequest(new { error = $"Geçersiz tema. Geçerli değerler: {string.Join(", ", BadgeThemes.All)}" });
+            }
+
+            var badge = await _context.Badges.FindAsync(id);
+            if (badge == null) return NotFound(new { error = "Rozet bulunamadı." });
+
+            badge.Name = dto.Name.Trim();
+            badge.Icon = string.IsNullOrWhiteSpace(dto.Icon) ? null : dto.Icon.Trim();
+            badge.ColorTheme = dto.ColorTheme;
+            badge.Shine = dto.Shine;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Rozet güncellendi." });
+        }
+
+        // DELETE: api/admin/badges/5 — kullanıcılar rozetsiz kalır (SetNull FK).
+        [Authorize(Roles = Roles.Owner)]
+        [HttpDelete("badges/{id}")]
+        public async Task<IActionResult> DeleteBadge(int id)
+        {
+            var badge = await _context.Badges.FindAsync(id);
+            if (badge == null) return NotFound(new { error = "Rozet bulunamadı." });
+
+            _context.Badges.Remove(badge);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Rozet silindi." });
+        }
+
+        // PUT: api/admin/users/5/badge — rozet atama/kaldırma. Admin+ yetkisinde
+        // (tag atama, planlanan izin matrisinde Admin seviyesi).
+        [Authorize(Roles = Roles.AdminAndAbove)]
+        [HttpPut("users/{id}/badge")]
+        public async Task<IActionResult> AssignBadge(int id, [FromBody] AssignBadgeDto dto)
+        {
+            var target = await _context.Users.FindAsync(id);
+            if (target == null) return NotFound(new { error = "Kullanıcı bulunamadı." });
+
+            if (dto.BadgeId.HasValue && !await _context.Badges.AnyAsync(b => b.Id == dto.BadgeId.Value))
+            {
+                return BadRequest(new { error = "Böyle bir rozet yok." });
+            }
+
+            target.BadgeId = dto.BadgeId;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Rozet güncellendi.", userId = target.Id, badgeId = target.BadgeId });
+        }
+
+        // ── Kategoriler ──────────────────────────────────────────
+        [Authorize(Roles = Roles.AdminAndAbove)]
+        [HttpPost("categories")]
+        public async Task<IActionResult> CreateCategory([FromBody] CategoryDto dto)
+        {
+            var slug = Slugify(dto.Name);
+
+            if (await _context.Categories.AnyAsync(c => c.Slug == slug || c.Name == dto.Name))
+            {
+                return BadRequest(new { error = "Bu isimde veya slug'da bir kategori zaten var." });
+            }
+
+            var category = new Category
+            {
+                Name = dto.Name.Trim(),
+                Slug = slug,
+                Description = dto.Description.Trim(),
+                Icon = string.IsNullOrWhiteSpace(dto.Icon) ? "hash" : dto.Icon.Trim(),
+                DisplayOrder = dto.DisplayOrder
+            };
+
+            _context.Categories.Add(category);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Kategori oluşturuldu.", categoryId = category.Id, slug = category.Slug });
+        }
+
+        [Authorize(Roles = Roles.AdminAndAbove)]
+        [HttpPut("categories/{id}")]
+        public async Task<IActionResult> UpdateCategory(int id, [FromBody] CategoryDto dto)
+        {
+            var category = await _context.Categories.FindAsync(id);
+            if (category == null) return NotFound(new { error = "Kategori bulunamadı." });
+
+            var slug = Slugify(dto.Name);
+
+            if (await _context.Categories.AnyAsync(c => c.Id != id && (c.Slug == slug || c.Name == dto.Name)))
+            {
+                return BadRequest(new { error = "Bu isimde veya slug'da başka bir kategori zaten var." });
+            }
+
+            category.Name = dto.Name.Trim();
+            category.Slug = slug;
+            category.Description = dto.Description.Trim();
+            category.Icon = string.IsNullOrWhiteSpace(dto.Icon) ? "hash" : dto.Icon.Trim();
+            category.DisplayOrder = dto.DisplayOrder;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Kategori güncellendi." });
+        }
+
+        // DELETE: api/admin/categories/5 — içinde konu varsa reddedilir, önce
+        // konuların taşınması/silinmesi gerekir (Restrict FK ile de tutarlı).
+        [Authorize(Roles = Roles.AdminAndAbove)]
+        [HttpDelete("categories/{id}")]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            var category = await _context.Categories.FindAsync(id);
+            if (category == null) return NotFound(new { error = "Kategori bulunamadı." });
+
+            var topicCount = await _context.Topics.CountAsync(t => t.CategoryId == id);
+            if (topicCount > 0)
+            {
+                return BadRequest(new { error = $"Bu kategoride {topicCount} konu var. Önce konuları başka bir kategoriye taşıyın." });
+            }
+
+            _context.Categories.Remove(category);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Kategori silindi." });
+        }
+
+        private static string Slugify(string input)
+        {
+            var lower = input.Trim().ToLowerInvariant()
+                .Replace('ı', 'i').Replace('ğ', 'g').Replace('ü', 'u')
+                .Replace('ş', 's').Replace('ö', 'o').Replace('ç', 'c');
+
+            var chars = lower.Select(ch => char.IsLetterOrDigit(ch) ? ch : '-').ToArray();
+            var slug = new string(chars);
+
+            while (slug.Contains("--")) slug = slug.Replace("--", "-");
+
+            return slug.Trim('-');
         }
     }
 }

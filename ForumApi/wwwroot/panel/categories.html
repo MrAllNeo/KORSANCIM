@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kategoriler — Panel — KORSANCIM</title>
+    <link rel="icon" type="image/svg+xml" href="../static/favicon.svg">
+    <link rel="stylesheet" href="../css/tailwind.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../js/app.js"></script>
+    <script src="panel.js"></script>
+</head>
+
+<body class="bg-base text-ink font-sans">
+
+    <div id="panel-header"></div>
+
+    <main class="max-w-3xl mx-auto px-4 py-6 space-y-4">
+
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h1 class="text-lg font-bold text-ink mb-1">Kategoriler</h1>
+                <p class="hint">İçinde konu bulunan bir kategori silinemez — önce konular taşınmalı.</p>
+            </div>
+            <button id="btn-new-category" class="btn btn-primary btn-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i> Yeni Kategori
+            </button>
+        </div>
+
+        <div id="category-rows" class="space-y-2">
+            <div class="card p-8 text-center"><div class="skeleton h-4 w-32 mx-auto"></div></div>
+        </div>
+    </main>
+
+    <div id="category-modal" class="hidden fixed inset-0 z-50 bg-black/60 grid place-items-center p-4">
+        <div class="card p-5 w-full max-w-sm">
+            <h2 id="category-modal-title" class="text-sm font-bold text-ink mb-3">Yeni kategori</h2>
+
+            <label class="label" for="category-name">Ad</label>
+            <input id="category-name" class="input" maxlength="60" placeholder="ör. Oyun & Donanım">
+
+            <label class="label mt-3" for="category-description">Açıklama</label>
+            <textarea id="category-description" rows="2" maxlength="200" class="input" placeholder="Kısa açıklama…"></textarea>
+
+            <div class="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                    <label class="label" for="category-icon">İkon (lucide adı)</label>
+                    <input id="category-icon" class="input" maxlength="30" placeholder="hash">
+                </div>
+                <div>
+                    <label class="label" for="category-order">Sıra</label>
+                    <input id="category-order" type="number" class="input" value="0">
+                </div>
+            </div>
+
+            <p id="category-error" class="text-bad text-xs mt-2 hidden"></p>
+
+            <div class="flex justify-end gap-2 mt-4">
+                <button onclick="closeCategoryModal()" class="btn btn-quiet">Vazgeç</button>
+                <button onclick="saveCategory()" class="btn btn-primary">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let editingCategoryId = null;
+
+        function categoryRow(c) {
+            return `
+            <div class="card p-4 flex items-center gap-3">
+                <span class="w-9 h-9 rounded-lg bg-accent/15 border border-accent/25 grid place-items-center shrink-0">
+                    <i data-lucide="${escapeHtml(c.icon || 'hash')}" class="w-4 h-4 text-accent-soft"></i>
+                </span>
+                <div class="flex-1 min-w-0">
+                    <p class="font-medium text-ink truncate">${escapeHtml(c.name)}</p>
+                    <p class="hint truncate">${escapeHtml(c.description || '')} · ${c.topicCount} konu</p>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                    <button data-edit-category="${c.id}" class="btn btn-quiet btn-sm">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button data-delete-category="${c.id}" class="btn btn-quiet btn-sm btn-danger">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>`;
+        }
+
+        async function loadCategories() {
+            const res = await fetch('/api/categories');
+            if (!res.ok) return;
+            const categories = await res.json();
+
+            document.getElementById('category-rows').innerHTML = categories.length
+                ? categories.map(categoryRow).join('')
+                : `<div class="card p-8 text-center hint">Henüz kategori yok.</div>`;
+
+            document.querySelectorAll('[data-edit-category]').forEach(btn =>
+                btn.addEventListener('click', () => openCategoryModal(categories.find(c => c.id === Number(btn.dataset.editCategory)))));
+            document.querySelectorAll('[data-delete-category]').forEach(btn =>
+                btn.addEventListener('click', () => deleteCategory(Number(btn.dataset.deleteCategory))));
+
+            lucide.createIcons();
+        }
+
+        function openCategoryModal(category = null) {
+            editingCategoryId = category?.id ?? null;
+            document.getElementById('category-modal-title').textContent = category ? 'Kategoriyi düzenle' : 'Yeni kategori';
+            document.getElementById('category-name').value = category?.name || '';
+            document.getElementById('category-description').value = category?.description || '';
+            document.getElementById('category-icon').value = category?.icon || 'hash';
+            document.getElementById('category-order').value = category?.displayOrder ?? 0;
+            document.getElementById('category-error').classList.add('hidden');
+            document.getElementById('category-modal').classList.remove('hidden');
+        }
+
+        function closeCategoryModal() {
+            editingCategoryId = null;
+            document.getElementById('category-modal').classList.add('hidden');
+        }
+
+        async function saveCategory() {
+            const name = document.getElementById('category-name').value.trim();
+            const description = document.getElementById('category-description').value.trim();
+            const icon = document.getElementById('category-icon').value.trim() || 'hash';
+            const displayOrder = parseInt(document.getElementById('category-order').value) || 0;
+            const errorEl = document.getElementById('category-error');
+
+            if (name.length < 2) {
+                errorEl.textContent = 'Ad en az 2 karakter olmalı.';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            const body = { name, description, icon, displayOrder };
+            const res = editingCategoryId
+                ? await apiFetchJson(`/api/admin/categories/${editingCategoryId}`, 'PUT', body)
+                : await apiFetchJson('/api/admin/categories', 'POST', body);
+
+            if (res.ok) {
+                closeCategoryModal();
+                loadCategories();
+            } else {
+                errorEl.textContent = await readError(res, 'Kategori kaydedilemedi.');
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        async function deleteCategory(id) {
+            if (!confirm('Bu kategori silinecek. Emin misiniz?')) return;
+
+            const res = await apiFetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                loadCategories();
+            } else {
+                alert(await readError(res, 'Kategori silinemedi.'));
+            }
+        }
+
+        document.getElementById('btn-new-category').addEventListener('click', () => openCategoryModal());
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!requireStaff()) return;
+            if (!isAdmin()) { window.location.href = 'index.html'; return; }
+            renderPanelNav('categories');
+            loadCategories();
+        });
+    </script>
+</body>
+
+</html>

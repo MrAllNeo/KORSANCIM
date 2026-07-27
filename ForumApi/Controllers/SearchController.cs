@@ -51,6 +51,7 @@ namespace ForumApi.Controllers
                     t.CategoryId,
                     CategoryName = t.Category!.Name,
                     AuthorUsername = t.User!.Username,
+                    Badge = t.User.Badge == null ? null : new { t.User.Badge.Id, t.User.Badge.Name, t.User.Badge.Icon, t.User.Badge.ColorTheme, t.User.Badge.Shine },
                     t.LikeCount,
                     t.CreatedAt,
                     t.UpdatedAt
@@ -70,6 +71,7 @@ namespace ForumApi.Controllers
                     TopicTitle = c.Topic!.Title,
                     c.Content,
                     AuthorUsername = c.User!.Username,
+                    Badge = c.User.Badge == null ? null : new { c.User.Badge.Id, c.User.Badge.Name, c.User.Badge.Icon, c.User.Badge.ColorTheme, c.User.Badge.Shine },
                     c.LikeCount,
                     c.CreatedAt,
                     c.UpdatedAt
@@ -87,6 +89,7 @@ namespace ForumApi.Controllers
                     u.Username,
                     u.Bio,
                     u.AvatarUrl,
+                    Badge = u.Badge == null ? null : new { u.Badge.Id, u.Badge.Name, u.Badge.Icon, u.Badge.ColorTheme, u.Badge.Shine },
                     u.CreatedAt
                 })
                 .ToListAsync();

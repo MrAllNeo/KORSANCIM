@@ -44,7 +44,10 @@
                                 class="hidden" onchange="uploadImage('avatar')">
                         </label>
                     </div>
-                    <div id="profile-badge-area" class="pb-1"></div>
+                    <div class="pb-1 flex items-center gap-2">
+                        <div id="profile-badge-area"></div>
+                        <div id="profile-report-area"></div>
+                    </div>
                 </div>
 
                 <h1 id="profile-username" class="text-xl font-bold mb-1">…</h1>
@@ -164,8 +167,13 @@
                         `url("${encodeURI(data.bannerUrl)}")`;
                 }
 
-                document.getElementById('profile-username').innerHTML = renderUserName(data.username);
-                document.getElementById('profile-badge-area').innerHTML = renderBadge(data.username, 'md');
+                document.getElementById('profile-username').innerHTML = renderUserName(data.username, data.badge);
+                document.getElementById('profile-badge-area').innerHTML = renderBadge(data.badge, 'md');
+                document.getElementById('profile-report-area').innerHTML = (!isMyProfile && isLoggedIn())
+                    ? `<button onclick="openReportModal('User', ${data.id})" class="btn btn-quiet btn-sm" title="Şikayet Et" aria-label="Şikayet Et">
+                           <i data-lucide="flag" class="w-3.5 h-3.5"></i>
+                       </button>`
+                    : '';
                 document.getElementById('profile-bio').textContent = data.bio || 'Henüz biyografi eklenmemiş.';
                 document.getElementById('profile-joined').textContent =
                     new Date(data.createdAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' }) + ' tarihinde katıldı';

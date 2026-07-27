@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using ForumApi.Data;
+using ForumApi.Models;
 using ForumApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -50,6 +51,7 @@ namespace ForumApi.Controllers
         public async Task<IActionResult> GetProfile(string username)
         {
             var user = await _context.Users
+                .Include(u => u.Badge)
                 .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
 
             if (user == null)
@@ -96,12 +98,14 @@ namespace ForumApi.Controllers
             // E-posta bilerek dönülmüyor — profil herkese açık bir uç nokta.
             return Ok(new
             {
+                user.Id,
                 user.Username,
                 user.Bio,
                 user.AvatarUrl,
                 user.BannerUrl,
                 user.GithubUrl,
                 user.WebsiteUrl,
+                Badge = BadgeSummary.From(user.Badge),
                 user.CreatedAt,
                 Topics = userTopics,
                 Comments = userComments

@@ -99,57 +99,31 @@ const DEFAULT_AVATAR = "data:image/svg+xml;utf8,"
     + " fill='none' stroke='%23818cf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>"
     + "<path d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/><circle cx='12' cy='7' r='4'/></svg>";
 
-// ── Kullanıcı Ünvanları (tier) ──────────────────────────────
-// Stiller css/app.css içinde. Eşleşme TAM kullanıcı adı üzerinden yapılır —
-// eskiden 'creator' geçen her ad (ör. "creator123") ünvanı kapıyordu.
-const USER_TIERS = [
-    {
-        id: 'creator',
-        usernames: ['creator'],
-        label: 'CREATOR & FOUNDER',
-        icon: 'crown',
-        badgeClass: 'tier-badge tier-shine tier-creator-badge',
-        nameClass: 'tier-creator-name'
-    },
-    {
-        id: 'assistant',
-        usernames: ['claude'],
-        label: 'ASSISTANT OF CREATOR',
-        icon: 'sparkles',
-        badgeClass: 'tier-badge tier-shine tier-assistant-badge',
-        nameClass: 'tier-assistant-name'
-    }
-];
-
-const MEMBER_TIER = {
-    id: 'member',
-    label: 'Korsan',
-    icon: null,
-    badgeClass: 'tier-badge tier-member-badge',
-    nameClass: 'tier-member-name'
-};
-
-function getUserTier(username) {
-    const key = String(username || '').trim().toLowerCase();
-    return USER_TIERS.find(t => t.usernames.includes(key)) || MEMBER_TIER;
-}
+// ── Kullanıcı Ünvanları (rozet) ──────────────────────────────
+// Rozetler artık DB'den geliyor (yönetim panelinden atanır), bkz.
+// AdminController Badge uçları. Stiller css/app.css'te tema bazlı
+// (.tier-badge-{theme}/.tier-name-{theme}) tanımlı. `badge` parametresi API
+// yanıtlarındaki { id, name, icon, colorTheme, shine } nesnesi ya da null.
 
 // size: 'sm' (yorum/liste içi) | 'md' (profil başlığı)
-function renderBadge(username, size = 'sm') {
-    const tier = getUserTier(username);
+function renderBadge(badge, size = 'sm') {
+    if (!badge) return '';
+
+    const theme = badge.colorTheme || 'plain';
+    const shine = badge.shine ? ' tier-shine' : '';
     const sizing = size === 'md'
         ? 'text-[11px] px-3 py-1 rounded-full'
         : 'text-[10px] px-2 py-0.5 rounded-md';
-    const icon = tier.icon
-        ? `<i data-lucide="${tier.icon}" class="w-3.5 h-3.5 shrink-0"></i>`
+    const icon = badge.icon
+        ? `<i data-lucide="${escapeHtml(badge.icon)}" class="w-3.5 h-3.5 shrink-0"></i>`
         : '';
 
-    return `<span class="${tier.badgeClass} ${sizing}">${icon}${escapeHtml(tier.label)}</span>`;
+    return `<span class="tier-badge tier-badge-${theme}${shine} ${sizing}">${icon}${escapeHtml(badge.name)}</span>`;
 }
 
-function renderUserName(username, extraClass = '') {
-    const tier = getUserTier(username);
-    return `<span class="${tier.nameClass} ${extraClass}">${escapeHtml(username)}</span>`;
+function renderUserName(username, badge, extraClass = '') {
+    const theme = badge?.colorTheme || 'plain';
+    return `<span class="tier-name-${theme} ${extraClass}">${escapeHtml(username)}</span>`;
 }
 
 // ── Oturum ──────────────────────────────────────────────────
@@ -180,6 +154,7 @@ function saveSession(data) {
         userId: data.userId,
         avatarUrl: data.avatarUrl || null,
         role: data.role || 'User',
+        badge: data.badge || null,
         expiresAt: Date.now() + (data.expiresInHours || 12) * 3600 * 1000
     }));
 }
@@ -280,6 +255,77 @@ async function readError(response, fallback) {
     }
 }
 
+// ── Şikayet ─────────────────────────────────────────────────
+// Konu/yorum/kullanıcı sayfalarının hepsi aynı modalı paylaşır — DOM'a
+// yalnızca ilk çağrıda tek sefer eklenir.
+let _reportTarget = null;
+
+function ensureReportModal() {
+    if (document.getElementById('report-modal')) return;
+
+    const div = document.createElement('div');
+    div.id = 'report-modal';
+    div.className = 'hidden fixed inset-0 z-50 bg-black/60 grid place-items-center p-4';
+    div.innerHTML = `
+        <div class="card p-5 w-full max-w-sm">
+            <h2 class="text-sm font-bold text-ink mb-3">İçeriği şikayet et</h2>
+            <label class="label" for="report-reason">Sebep</label>
+            <input id="report-reason" class="input" maxlength="200" placeholder="Kısaca sebep belirtin…">
+            <label class="label mt-3" for="report-note">Not (isteğe bağlı)</label>
+            <textarea id="report-note" rows="3" class="input" placeholder="Ek detay…"></textarea>
+            <p id="report-error" class="text-bad text-xs mt-2 hidden"></p>
+            <div class="flex justify-end gap-2 mt-4">
+                <button onclick="closeReportModal()" class="btn btn-quiet">Vazgeç</button>
+                <button onclick="submitReport()" class="btn btn-primary">Şikayet Et</button>
+            </div>
+        </div>`;
+    document.body.appendChild(div);
+}
+
+function openReportModal(targetType, targetId) {
+    if (!requireLogin()) return;
+
+    ensureReportModal();
+    _reportTarget = { targetType, targetId };
+
+    document.getElementById('report-reason').value = '';
+    document.getElementById('report-note').value = '';
+    document.getElementById('report-error').classList.add('hidden');
+    document.getElementById('report-modal').classList.remove('hidden');
+}
+
+function closeReportModal() {
+    _reportTarget = null;
+    document.getElementById('report-modal')?.classList.add('hidden');
+}
+
+async function submitReport() {
+    const reason = document.getElementById('report-reason').value.trim();
+    const note = document.getElementById('report-note').value.trim();
+    const errorEl = document.getElementById('report-error');
+
+    if (reason.length < 3) {
+        errorEl.textContent = 'Sebep en az 3 karakter olmalı.';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    const res = await apiFetchJson('/api/reports', 'POST', {
+        targetType: _reportTarget.targetType,
+        targetId: _reportTarget.targetId,
+        reason,
+        note: note || null
+    });
+
+    if (res.ok) {
+        closeReportModal();
+        alert('Şikayetiniz alındı, incelenecek.');
+    } else {
+        errorEl.textContent = await readError(res, 'Şikayet gönderilemedi.');
+        errorEl.classList.remove('hidden');
+    }
+}
+
 // ── Kategoriler ─────────────────────────────────────────────
 // Tek kaynak: /api/categories. Sayfa başına bir kez çekilip önbelleğe alınır;
 // isimler artık HTML içinde sabit kodlu değil.
@@ -312,6 +358,7 @@ function renderHeader(options = {}) {
     const session = getSession();
     const username = session?.username || null;
     const avatarUrl = session?.avatarUrl;
+    const badge = session?.badge || null;
 
     const navLink = (href, icon, text, key) => `
         <a href="${href}" class="btn btn-quiet ${active === key ? 'text-ink' : ''}">
@@ -329,7 +376,7 @@ function renderHeader(options = {}) {
                 : `<span class="text-[10px] font-bold text-accent-soft">${escapeHtml(username.charAt(0).toUpperCase())}</span>`}
                    </span>
                    <span class="hidden sm:flex items-center gap-1.5 min-w-0">
-                       ${renderUserName(username, 'text-[13px] truncate max-w-[9ch]')}${renderBadge(username)}
+                       ${renderUserName(username, badge, 'text-[13px] truncate max-w-[9ch]')}${renderBadge(badge)}
                    </span>
                </a>
                <button onclick="logout()" class="btn btn-quiet btn-danger" title="Çıkış Yap" aria-label="Çıkış Yap">

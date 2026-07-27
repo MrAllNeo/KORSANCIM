@@ -269,7 +269,8 @@ textarea.input {
 
 /* ══════════════════════════════════════════════════════════════
    Ünvan rozetleri — tasarımdaki tek "gösterişli" öğe
-   Eşleşme mantığı js/app.js içindeki USER_TIERS ile aynı.
+   Rozet verisi DB'den gelir (bkz. Models/Badge.cs, AdminController),
+   tema sınıfları js/app.js içindeki renderBadge/renderUserName ile eşleşir.
    ══════════════════════════════════════════════════════════════ */
 
 @keyframes tier-gradient-shift {
@@ -310,13 +311,17 @@ textarea.input {
     pointer-events: none;
 }
 
-.tier-creator-badge {
+/* Rozet renk temaları — yönetim panelinden bir rozet oluşturulurken bu
+   önceden tanımlı temalardan biri seçilir (bkz. Models/BadgeThemes.cs).
+   Admin'in serbest CSS/renk girmesine izin verilmiyor. */
+
+.tier-badge-gold {
     color: #fcd34d;
     background: rgba(251, 191, 36, .1);
     border: 1px solid rgba(251, 191, 36, .38);
 }
 
-.tier-creator-name {
+.tier-name-gold {
     background: linear-gradient(110deg, #fbbf24, #fb7185, #c084fc, #38bdf8, #fbbf24);
     background-size: 300% 100%;
     -webkit-background-clip: text;
@@ -328,13 +333,13 @@ textarea.input {
                tier-glow-pulse 3s ease-in-out infinite;
 }
 
-.tier-assistant-badge {
+.tier-badge-cyan {
     color: #7dd3fc;
     background: rgba(56, 189, 248, .1);
     border: 1px solid rgba(56, 189, 248, .34);
 }
 
-.tier-assistant-name {
+.tier-name-cyan {
     background: linear-gradient(110deg, #67e8f9, #38bdf8, #818cf8, #67e8f9);
     background-size: 300% 100%;
     -webkit-background-clip: text;
@@ -345,14 +350,65 @@ textarea.input {
     animation: tier-gradient-shift 5.5s ease-in-out infinite;
 }
 
-.tier-member-badge {
+.tier-badge-purple {
+    color: #d8b4fe;
+    background: rgba(168, 85, 247, .1);
+    border: 1px solid rgba(168, 85, 247, .36);
+}
+
+.tier-name-purple {
+    background: linear-gradient(110deg, #c084fc, #818cf8, #c084fc);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    font-weight: 700;
+    animation: tier-gradient-shift 5.5s ease-in-out infinite;
+}
+
+.tier-badge-green {
+    color: #6ee7b7;
+    background: rgba(52, 211, 153, .1);
+    border: 1px solid rgba(52, 211, 153, .36);
+}
+
+.tier-name-green {
+    background: linear-gradient(110deg, #34d399, #6ee7b7, #34d399);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    font-weight: 700;
+    animation: tier-gradient-shift 5.5s ease-in-out infinite;
+}
+
+.tier-badge-red {
+    color: #fca5a5;
+    background: rgba(248, 113, 113, .1);
+    border: 1px solid rgba(248, 113, 113, .36);
+}
+
+.tier-name-red {
+    background: linear-gradient(110deg, #f87171, #fb7185, #f87171);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    font-weight: 700;
+    animation: tier-gradient-shift 5.5s ease-in-out infinite;
+}
+
+.tier-badge-plain {
     color: var(--ink-faint);
     background: var(--raised);
     border: 1px solid var(--line);
     font-weight: 600;
 }
 
-.tier-member-name {
+.tier-name-plain {
     color: var(--ink);
     font-weight: 600;
 }
@@ -416,8 +472,11 @@ textarea.input {
         transition-duration: .001ms !important;
     }
 
-    .tier-creator-name,
-    .tier-assistant-name {
+    .tier-name-gold,
+    .tier-name-cyan,
+    .tier-name-purple,
+    .tier-name-green,
+    .tier-name-red {
         background-position: 0% 50%;
     }
 }

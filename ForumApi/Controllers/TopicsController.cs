@@ -78,6 +78,7 @@ namespace ForumApi.Controllers
             t.UserId,
             AuthorUsername = t.User?.Username ?? "(silinmiş kullanıcı)",
             AuthorAvatarUrl = t.User?.AvatarUrl,
+            Badge = BadgeSummary.From(t.User?.Badge),
             t.LikeCount,
             CommentCount = t.Comments?.Count ?? 0,
             t.CreatedAt,
@@ -117,7 +118,7 @@ namespace ForumApi.Controllers
             pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
 
             var query = _context.Topics
-                .Include(t => t.User)
+                .Include(t => t.User).ThenInclude(u => u!.Badge)
                 .Include(t => t.Category)
                 .Include(t => t.Comments)
                 .AsQueryable();
@@ -154,7 +155,7 @@ namespace ForumApi.Controllers
         public async Task<IActionResult> GetTopic(int id)
         {
             var topic = await _context.Topics
-                .Include(t => t.User)
+                .Include(t => t.User).ThenInclude(u => u!.Badge)
                 .Include(t => t.Category)
                 .Include(t => t.Comments)
                 .FirstOrDefaultAsync(t => t.Id == id);
@@ -223,6 +224,10 @@ namespace ForumApi.Controllers
 
             await _context.Entry(topic).Reference(t => t.User).LoadAsync();
             await _context.Entry(topic).Reference(t => t.Category).LoadAsync();
+            if (topic.User != null)
+            {
+                await _context.Entry(topic.User).Reference(u => u.Badge).LoadAsync();
+            }
 
             return Ok(ToDto(topic));
         }
@@ -234,7 +239,7 @@ namespace ForumApi.Controllers
         public async Task<IActionResult> UpdateTopic(int id, [FromBody] UpdateTopicDto dto)
         {
             var topic = await _context.Topics
-                .Include(t => t.User)
+                .Include(t => t.User).ThenInclude(u => u!.Badge)
                 .Include(t => t.Category)
                 .Include(t => t.Comments)
                 .FirstOrDefaultAsync(t => t.Id == id);

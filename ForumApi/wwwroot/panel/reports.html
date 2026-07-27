@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Şikayetler — Panel — KORSANCIM</title>
+    <link rel="icon" type="image/svg+xml" href="../static/favicon.svg">
+    <link rel="stylesheet" href="../css/tailwind.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../js/app.js"></script>
+    <script src="panel.js"></script>
+</head>
+
+<body class="bg-base text-ink font-sans">
+
+    <div id="panel-header"></div>
+
+    <main class="max-w-5xl mx-auto px-4 py-6 space-y-4">
+
+        <div>
+            <h1 class="text-lg font-bold text-ink mb-1">Şikayetler</h1>
+            <p class="hint">Kullanıcıların bildirdiği konu, yorum ve kullanıcı şikayetleri.</p>
+        </div>
+
+        <select id="status-filter" class="input max-w-xs">
+            <option value="">Tüm durumlar</option>
+            <option value="Pending">Bekleyen</option>
+            <option value="Reviewing">İncelemede</option>
+            <option value="Resolved">Çözüldü</option>
+            <option value="Dismissed">Reddedildi</option>
+        </select>
+
+        <div id="report-rows" class="space-y-2">
+            <div class="card p-8 text-center"><div class="skeleton h-4 w-32 mx-auto"></div></div>
+        </div>
+        <div id="pagination" class="flex justify-center gap-2"></div>
+    </main>
+
+    <div id="resolve-modal" class="hidden fixed inset-0 z-50 bg-black/60 grid place-items-center p-4">
+        <div class="card p-5 w-full max-w-sm">
+            <h2 id="resolve-modal-title" class="text-sm font-bold text-ink mb-3">Şikayeti sonuçlandır</h2>
+            <label class="label" for="resolve-note">Çözüm notu (isteğe bağlı)</label>
+            <textarea id="resolve-note" rows="3" class="input" placeholder="Ne yapıldığını / neden reddedildiğini yazabilirsiniz…"></textarea>
+            <div class="flex justify-end gap-2 mt-4">
+                <button onclick="closeResolveModal()" class="btn btn-quiet">Vazgeç</button>
+                <button onclick="confirmResolve()" class="btn btn-primary">Onayla</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let currentStatus = '';
+        let resolveTarget = null; // { reportId, status }
+
+        const STATUS_LABEL = {
+            Pending: 'Bekleyen',
+            Reviewing: 'İncelemede',
+            Resolved: 'Çözüldü',
+            Dismissed: 'Reddedildi'
+        };
+
+        const STATUS_CLASS = {
+            Pending: 'bg-warn/15 text-warn border border-warn/30',
+            Reviewing: 'bg-accent/15 text-accent-soft border border-accent/30',
+            Resolved: 'bg-ok/15 text-ok border border-ok/30',
+            Dismissed: 'bg-sunken text-ink-faint border border-line'
+        };
+
+        const TARGET_ICON = { Topic: 'file-text', Comment: 'message-square', User: 'user' };
+        const TARGET_LABEL = { Topic: 'Konu', Comment: 'Yorum', User: 'Kullanıcı' };
+
+        function statusBadge(status) {
+            return `<span class="text-[10px] px-2 py-0.5 rounded-md ${STATUS_CLASS[status] || STATUS_CLASS.Pending}">${STATUS_LABEL[status] || status}</span>`;
+        }
+
+        function reportCard(r) {
+            const targetLink = r.targetType === 'Topic'
+                ? `../topic-detail.html?id=${r.targetId}`
+                : null;
+
+            const targetInfo = `
+                <span class="chip">
+                    <i data-lucide="${TARGET_ICON[r.targetType] || 'flag'}" class="w-3 h-3"></i>
+                    ${TARGET_LABEL[r.targetType] || r.targetType}
+                </span>
+                ${targetLink
+                    ? `<a href="${targetLink}" target="_blank" class="text-accent-soft hover:underline truncate">${escapeHtml(r.targetPreview)}</a>`
+                    : `<span class="text-ink-soft truncate">${escapeHtml(r.targetPreview)}</span>`}`;
+
+            const actions = r.status === 'Resolved' || r.status === 'Dismissed'
+                ? ''
+                : `<div class="flex items-center gap-1">
+                    ${r.status === 'Pending' ? `<button data-review-id="${r.id}" class="btn btn-quiet btn-sm">İncelemeye Al</button>` : ''}
+                    <button data-resolve-id="${r.id}" class="btn btn-quiet btn-sm text-ok">Çöz</button>
+                    <button data-dismiss-id="${r.id}" class="btn btn-quiet btn-sm text-ink-faint">Reddet</button>
+                   </div>`;
+
+            return `
+            <div class="card p-4 space-y-2" data-report-id="${r.id}">
+                <div class="flex items-center gap-2 text-xs flex-wrap">
+                    ${targetInfo}
+                    ${statusBadge(r.status)}
+                    <span class="text-ink-faint ml-auto">${escapeHtml(timeAgo(r.createdAt))}</span>
+                </div>
+                <p class="text-sm text-ink"><span class="text-ink-faint">Sebep:</span> ${escapeHtml(r.reason)}</p>
+                ${r.note ? `<p class="text-[13px] text-ink-soft"><span class="text-ink-faint">Not:</span> ${escapeHtml(r.note)}</p>` : ''}
+                <p class="hint">Şikayet eden: ${escapeHtml(r.reporterUsername)}</p>
+                ${r.resolutionNote ? `<p class="text-[13px] text-ink-soft border-l-2 border-line pl-2">${escapeHtml(r.resolutionNote)} — ${escapeHtml(r.handledByUsername || '')}</p>` : ''}
+                <div class="flex items-center pt-2 divider">${actions}</div>
+            </div>`;
+        }
+
+        async function loadReports(page = 1) {
+            currentPage = page;
+            const params = new URLSearchParams({ page, pageSize: 20 });
+            if (currentStatus) params.set('status', currentStatus);
+
+            const res = await apiFetch(`/api/admin/reports?${params}`);
+            if (!res.ok) return;
+
+            const data = await res.json();
+
+            document.getElementById('report-rows').innerHTML = data.items.length
+                ? data.items.map(reportCard).join('')
+                : `<div class="card p-8 text-center hint">Şikayet bulunamadı.</div>`;
+
+            document.querySelectorAll('[data-review-id]').forEach(btn =>
+                btn.addEventListener('click', () => updateStatus(Number(btn.dataset.reviewId), 'Reviewing')));
+            document.querySelectorAll('[data-resolve-id]').forEach(btn =>
+                btn.addEventListener('click', () => openResolveModal(Number(btn.dataset.resolveId), 'Resolved')));
+            document.querySelectorAll('[data-dismiss-id]').forEach(btn =>
+                btn.addEventListener('click', () => openResolveModal(Number(btn.dataset.dismissId), 'Dismissed')));
+
+            lucide.createIcons();
+            renderPagination('pagination', data.page, data.totalPages, loadReports);
+        }
+
+        async function updateStatus(reportId, status, resolutionNote = null) {
+            const res = await apiFetchJson(`/api/admin/reports/${reportId}/status`, 'PUT', { status, resolutionNote });
+            if (res.ok) {
+                loadReports(currentPage);
+            } else {
+                alert(await readError(res, 'Şikayet güncellenemedi.'));
+            }
+        }
+
+        function openResolveModal(reportId, status) {
+            resolveTarget = { reportId, status };
+            document.getElementById('resolve-modal-title').textContent =
+                status === 'Resolved' ? 'Şikayeti çözüldü olarak işaretle' : 'Şikayeti reddet';
+            document.getElementById('resolve-note').value = '';
+            document.getElementById('resolve-modal').classList.remove('hidden');
+        }
+
+        function closeResolveModal() {
+            resolveTarget = null;
+            document.getElementById('resolve-modal').classList.add('hidden');
+        }
+
+        function confirmResolve() {
+            const note = document.getElementById('resolve-note').value.trim();
+            const { reportId, status } = resolveTarget;
+            closeResolveModal();
+            updateStatus(reportId, status, note || null);
+        }
+
+        document.getElementById('status-filter').addEventListener('change', (e) => {
+            currentStatus = e.target.value;
+            loadReports(1);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!requireStaff()) return;
+            renderPanelNav('reports');
+            loadReports();
+        });
+    </script>
+</body>
+
+</html>

@@ -25,6 +25,10 @@ namespace ForumApi.Models
         public bool IsBanned { get; set; } = false;
         public string? BanReason { get; set; }
 
+        // Yönetim panelinden atanan kozmetik ünvan rozeti — opsiyonel.
+        public int? BadgeId { get; set; }
+        public Badge? Badge { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

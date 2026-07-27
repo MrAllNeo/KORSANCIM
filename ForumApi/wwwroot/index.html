@@ -177,9 +177,9 @@
 
                 <div class="flex items-center gap-2 mt-3 pt-3 divider text-xs flex-wrap">
                     <a href="profile.html?u=${escapeAttr(author)}" class="flex items-center gap-1.5 hover:opacity-80 transition">
-                        ${renderUserName(author, 'text-[13px]')}
+                        ${renderUserName(author, topic.badge, 'text-[13px]')}
                     </a>
-                    ${renderBadge(author)}
+                    ${renderBadge(topic.badge)}
 
                     <div class="flex items-center gap-1 ml-auto">
                         <button onclick="likeTopic(${topic.id}, this)"
@@ -320,7 +320,7 @@
                             </span>
                             <span class="min-w-0">
                                 <span class="flex items-center gap-1.5 flex-wrap">
-                                    ${renderUserName(u.username, 'text-[13px]')}${renderBadge(u.username)}
+                                    ${renderUserName(u.username, u.badge, 'text-[13px]')}${renderBadge(u.badge)}
                                 </span>
                                 <span class="block hint truncate mt-0.5">${highlight(truncate(u.bio || 'Biyografi yok.', 60), q)}</span>
                             </span>
@@ -338,7 +338,7 @@
                             <h4 class="text-sm font-semibold text-ink mb-1">${highlight(t.title, q)}</h4>
                             <p class="text-[13px] text-ink-soft">${highlight(truncate(stripRichSyntax(t.content), 180), q)}</p>
                             <div class="flex items-center gap-2 mt-3 pt-3 divider text-xs">
-                                ${renderUserName(t.authorUsername, 'text-[13px]')}${renderBadge(t.authorUsername)}
+                                ${renderUserName(t.authorUsername, t.badge, 'text-[13px]')}${renderBadge(t.badge)}
                                 <span class="text-ink-faint ml-auto flex items-center gap-1">
                                     <i data-lucide="heart" class="w-3 h-3"></i>${t.likeCount}
                                 </span>
@@ -351,7 +351,7 @@
                     <div class="space-y-2">` + data.comments.map(c => `
                         <a href="topic-detail.html?id=${c.topicId}" class="card card-hover p-4 block">
                             <div class="flex items-center gap-2 mb-1.5 text-xs flex-wrap">
-                                ${renderUserName(c.authorUsername, 'text-[13px]')}${renderBadge(c.authorUsername)}
+                                ${renderUserName(c.authorUsername, c.badge, 'text-[13px]')}${renderBadge(c.badge)}
                                 <span class="text-ink-faint ml-auto">${escapeHtml(timeAgo(c.createdAt))}${c.updatedAt ? ' · düzenlendi' : ''}</span>
                             </div>
                             <p class="text-[13px] text-ink-soft">${highlight(truncate(stripRichSyntax(c.content), 180), q)}</p>

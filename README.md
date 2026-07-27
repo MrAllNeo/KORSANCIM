@@ -1,5 +1,7 @@
 # KORSANCIM
 
+CLAUDE AI ile Kodlandı - CODED WITH CLAUDE AI
+
 Anonim topluluk forumu. ASP.NET Core 8 Web API + SQLite, statik HTML/Tailwind arayüz.
 
 ## Yapı
@@ -15,8 +17,8 @@ ForumApi/
 └── wwwroot/         Arayüz (index, auth, create-topic, topic-detail, profile)
     ├── css/app.css       Tasarım sistemi (renk, kart, buton, rozet)
     ├── css/tailwind.css  Derlenmiş Tailwind çıktısı (git'e dahil, elle düzenlenmez)
-    ├── js/app.js         Ortak yardımcılar: header, oturum, rol kontrolü, XSS kaçışı, rozetler
-    ├── panel/            Yönetim paneli (Moderator+) — dashboard, kullanıcılar, içerik
+    ├── js/app.js         Ortak yardımcılar: header, oturum, rol kontrolü, XSS kaçışı, rozet render, şikayet modalı
+    ├── panel/            Yönetim paneli (Moderator+) — dashboard, kullanıcılar, içerik, şikayetler, rozetler, kategoriler
     └── uploads/          Kullanıcı yüklemeleri (git'e dahil değil)
 ```
 
@@ -104,6 +106,9 @@ Konu listesi varsayılan 20, en fazla 50 kayıt döner; yanıt
 ### Şikayet (Report) uçları
 
 Herkes (girişli) şikayet oluşturabilir; sonucu yalnızca kendi şikayetlerinde görür.
+Arayüzde konu/yorum/profil sayfalarındaki bayrak ikonlu "Şikayet Et" butonu
+(bkz. `js/app.js` `openReportModal`) bu uca bağlanır — kendi içeriğin için
+görünmez.
 
 | Metot | Yol | Açıklama |
 |---|---|---|
@@ -124,21 +129,33 @@ Owner yapabilir; bu, adminlerin birbirini terfi/azletmesini imkânsız kılar.
 
 | Metot | Yol | Açıklama |
 |---|---|---|
-| GET | `/api/admin/stats` ⚙️ | Panel dashboard'u için toplu sayımlar (kullanıcı/konu/yorum, bekleyen şikayet, son 24s) |
-| GET | `/api/admin/users?search=&page=&pageSize=` ⚙️ | Kullanıcı listesi (rol/ban durumu dahil) |
+| GET | `/api/admin/stats` ⚙️ | Dashboard verisi: toplu sayımlar, son 14 gün büyüme (üye/konu/yorum), en aktif kullanıcılar, en çok şikayet edilen kullanıcılar, karma aktivite akışı |
+| GET | `/api/admin/users?search=&page=&pageSize=` ⚙️ | Kullanıcı listesi (rol/ban/rozet durumu dahil) |
 | POST | `/api/admin/users/{id}/ban` ⚙️ | Kullanıcıyı banla (`{ reason }`) — Admin/Owner banlanamaz, kendine uygulanamaz |
 | POST | `/api/admin/users/{id}/unban` ⚙️ | Banı kaldır |
 | PUT | `/api/admin/users/{id}/role` ⚙️👑 | Rol ata: `User` / `Moderator` / `Admin` (Owner atanamaz) |
+| PUT | `/api/admin/users/{id}/badge` ⚙️👤 | Kullanıcıya rozet ata/kaldır (`{ badgeId }`, `null` = kaldır) |
 | DELETE | `/api/admin/topics/{id}` ⚙️ | Konuyu sahiplikten bağımsız sil (moderasyon) |
 | PUT | `/api/admin/topics/{id}` ⚙️👤 | Konuyu sahiplikten bağımsız düzenle (moderasyon) |
 | DELETE | `/api/admin/comments/{id}` ⚙️ | Yorumu sahiplikten bağımsız sil (moderasyon) |
 | PUT | `/api/admin/comments/{id}` ⚙️👤 | Yorumu sahiplikten bağımsız düzenle (moderasyon) |
 | GET | `/api/admin/reports?status=&page=&pageSize=` ⚙️ | Şikayet kuyruğu (bekleyenler önce), hedef önizlemesi dahil |
 | PUT | `/api/admin/reports/{id}/status` ⚙️ | Durum güncelle: `Pending`/`Reviewing`/`Resolved`/`Dismissed` (`{ status, resolutionNote? }`) |
+| GET | `/api/admin/badges` ⚙️ | Rozet listesi (kullanıcı sayısı dahil) |
+| POST | `/api/admin/badges` ⚙️👑 | Yeni rozet tanımla (`{ name, icon?, colorTheme, shine }`) |
+| PUT | `/api/admin/badges/{id}` ⚙️👑 | Rozeti düzenle |
+| DELETE | `/api/admin/badges/{id}` ⚙️👑 | Rozeti sil (kullanıcılar rozetsiz kalır) |
+| POST | `/api/admin/categories` ⚙️👤 | Kategori oluştur (`{ name, description, icon, displayOrder }`) |
+| PUT | `/api/admin/categories/{id}` ⚙️👤 | Kategoriyi düzenle |
+| DELETE | `/api/admin/categories/{id}` ⚙️👤 | Kategoriyi sil — içinde konu varsa reddedilir |
 
 Bir Admin'in yetkisi kötüye kullanılırsa çözüm önce Owner'ın onu
 `User`/`Moderator`'a indirmesi, sonra gerekirse banlanmasıdır — Admin/Owner
 hesapları doğrudan banlanamaz.
+
+Rozet renk teması önceden tanımlı bir setten seçilir (`gold`/`cyan`/`purple`/
+`green`/`red`/`plain`, bkz. `Models/BadgeThemes.cs`) — admin'in serbest CSS/renk
+girmesine izin verilmiyor, hem tasarım tutarlılığı hem injection riski için.
 
 Arama terimi en az 2 karakter olmalı, `limit` en fazla 50. Yanıt gövdesi
 `{ query, topics, comments, users, totals }` şeklinde gruplanmış döner.
@@ -155,9 +172,12 @@ sunumunun bir alt yolu. Sayfalar:
 
 | Sayfa | İçerik |
 |---|---|
-| `panel/index.html` | Dashboard — toplam kullanıcı/konu/yorum, banlı sayısı, bekleyen şikayet, son 24s yeni üye/konu, kategoriye göre dağılım |
-| `panel/users.html` | Kullanıcı arama + sayfalama, ban/unban, rol değiştirme (yalnızca Owner'a görünür — diğerlerinde rozet olarak gösterilir) |
+| `panel/index.html` | Dashboard — toplam sayımlar, son 14 gün büyüme grafiği (üye/konu/yorum), en aktif kullanıcılar, en çok şikayet edilenler, kategoriye göre dağılım, karma aktivite akışı |
+| `panel/users.html` | Kullanıcı arama + sayfalama, ban/unban, rol değiştirme (yalnızca Owner), rozet atama (Admin+) |
 | `panel/content.html` | Tüm konuların listesi (kategori filtresi), doğrudan silme; düzenlemek için konuya girilir |
+| `panel/reports.html` | Şikayet kuyruğu — durum filtresi, hedefe git, incelemeye al / çöz / reddet (çözüm notu ile) |
+| `panel/badges.html` | Rozet listesi (Moderator+ görür); oluşturma/düzenleme/silme yalnızca Owner |
+| `panel/categories.html` | Kategori CRUD (Admin+); içinde konu olan kategori silinemez |
 
 **Erişim modeli — iki katman:**
 1. **Gerçek yetki**: her `/api/admin/*` isteği sunucuda `[Authorize(Roles=...)]`
@@ -175,8 +195,9 @@ matrise uygun), sunucu tarafı `/api/topics/{id}` yerine `/api/admin/topics/{id}
 çağrılır. Ana site header'ında "Panel" linki yalnızca Moderator+ rolündeki
 oturumlarda görünür.
 
-Henüz yok (D3/D4'e bırakıldı): şikayet kuyruğu arayüzü, rozet/tag yönetimi,
-kategori CRUD arayüzü, denetim kaydı (audit log), site ayarları ekranı,
+Henüz yok (D4'e bırakıldı): denetim kaydı (audit log — kim ne zaman ne
+yaptı), site ayarları ekranı (kayıt aç/kapa, bakım modu, duyuru şeridi),
+panel'e özel daha sıkı rate limiting ve kısa ömürlü admin token'ı,
 subdomain + reverse-proxy şifresi (bilerek "yayına çıkış" partisine ertelendi).
 
 ## Veritabanı
@@ -230,10 +251,11 @@ dotnet ef migrations add DegisiklikAdi --project ForumApi
   kendini banlayamaz. Rol değişikliği yalnızca Owner'a açık — Admin bile rol
   atayamaz/azledemez.
 
-Henüz yapılmadı: e-posta doğrulama, admin paneli arayüzü (uçlar hazır, arayüz
-yok), rozet/tag sisteminin veritabanına taşınması (şu an kod içinde sabit,
-bkz. `wwwroot/js/app.js` `USER_TIERS`), denetim kaydı (audit log), token
-iptali (logout sunucuda değil yalnızca istemcide).
+Rozet sistemi veritabanında (`Badges` tablosu, `Users.BadgeId`) ve yönetim
+panelinden atanır — kod içinde sabit kullanıcı adı eşleşmesi kalmadı.
+
+Henüz yapılmadı: e-posta doğrulama, denetim kaydı (audit log), token iptali
+(logout sunucuda değil yalnızca istemcide).
 
 ## Testler
 
@@ -252,7 +274,11 @@ başka Owner'ı değiştirememesi, Admin/Owner'ın banlanamaması, Admin'in
 başkasının konusunu düzenleyebilmesi ama Moderator'ın düzenleyememesi,
 dashboard istatistik ucunun rol koruması),
 şikayet sistemi (oluşturma, tekrar şikayeti reddetme, moderatörün listeleyip
-çözümleyebilmesi, sıradan kullanıcının listeyi görememesi).
+çözümleyebilmesi, sıradan kullanıcının listeyi görememesi),
+rozet/kategori yönetimi (rozet CRUD'unun yalnızca Owner'a açık olması, geçersiz
+tema reddi, rozet atamanın Admin+ ile Moderator arasındaki farkı, var olmayan
+rozet atama reddi, kategori CRUD'unun Admin+ ile Moderator arasındaki farkı,
+içinde konu olan kategorinin silinememesi, yinelenen kategori adı reddi).
 
 ## Geçmiş
 

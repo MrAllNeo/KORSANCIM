@@ -91,7 +91,7 @@ namespace ForumApi.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u =>
+            var user = await _context.Users.Include(u => u.Badge).FirstOrDefaultAsync(u =>
                 u.Username.ToLower() == dto.UsernameOrEmail.ToLower() ||
                 u.Email.ToLower() == dto.UsernameOrEmail.ToLower());
 
@@ -145,7 +145,8 @@ namespace ForumApi.Controllers
                 email = user.Email,
                 userId = user.Id,
                 role = user.Role,
-                avatarUrl = user.AvatarUrl
+                avatarUrl = user.AvatarUrl,
+                badge = BadgeSummary.From(user.Badge)
             });
         }
     }

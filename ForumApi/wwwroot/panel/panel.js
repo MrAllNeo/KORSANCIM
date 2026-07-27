@@ -20,6 +20,9 @@ function renderPanelNav(active) {
                 ${link('index.html', 'layout-dashboard', 'Panel', 'dashboard')}
                 ${link('users.html', 'users', 'Kullanıcılar', 'users')}
                 ${link('content.html', 'file-text', 'İçerik', 'content')}
+                ${link('reports.html', 'flag', 'Şikayetler', 'reports')}
+                ${isAdmin() ? link('badges.html', 'award', 'Rozetler', 'badges') : ''}
+                ${isAdmin() ? link('categories.html', 'folder-tree', 'Kategoriler', 'categories') : ''}
                 <a href="../index.html" class="btn btn-quiet btn-sm ml-auto">
                     <i data-lucide="arrow-left" class="w-4 h-4"></i>
                     <span class="hidden sm:inline">Siteye Dön</span>

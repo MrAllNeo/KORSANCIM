@@ -18,6 +18,7 @@ namespace ForumApi.Data
         public DbSet<CommentLike> CommentLikes { get; set; }
 
         public DbSet<Report> Reports { get; set; }
+        public DbSet<Badge> Badges { get; set; }
 
         protected override void ConfigureConventions(ModelConfigurationBuilder builder)
         {
@@ -132,6 +133,12 @@ namespace ForumApi.Data
 
             modelBuilder.Entity<Report>()
                 .HasIndex(r => new { r.Status, r.CreatedAt });
+
+            // Rozet silinirse kullanıcılar rozetsiz kalır, banlanmaz (SetNull).
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Badge).WithMany(b => b.Users)
+                .HasForeignKey(u => u.BadgeId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Kategoriler — slug ve ad benzersiz, başlangıç verisi migration ile gelir.
             modelBuilder.Entity<Category>().HasIndex(c => c.Slug).IsUnique();

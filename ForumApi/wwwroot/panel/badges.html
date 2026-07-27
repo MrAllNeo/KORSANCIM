@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rozetler — Panel — KORSANCIM</title>
+    <link rel="icon" type="image/svg+xml" href="../static/favicon.svg">
+    <link rel="stylesheet" href="../css/tailwind.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../js/app.js"></script>
+    <script src="panel.js"></script>
+</head>
+
+<body class="bg-base text-ink font-sans">
+
+    <div id="panel-header"></div>
+
+    <main class="max-w-3xl mx-auto px-4 py-6 space-y-4">
+
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h1 class="text-lg font-bold text-ink mb-1">Rozetler</h1>
+                <p class="hint">Kullanıcı adının yanında görünen kozmetik ünvanlar. Atama kullanıcı sayfasından yapılır.</p>
+            </div>
+            <button id="btn-new-badge" class="btn btn-primary btn-sm hidden">
+                <i data-lucide="plus" class="w-4 h-4"></i> Yeni Rozet
+            </button>
+        </div>
+
+        <div id="badge-rows" class="space-y-2">
+            <div class="card p-8 text-center"><div class="skeleton h-4 w-32 mx-auto"></div></div>
+        </div>
+    </main>
+
+    <div id="badge-modal" class="hidden fixed inset-0 z-50 bg-black/60 grid place-items-center p-4">
+        <div class="card p-5 w-full max-w-sm">
+            <h2 id="badge-modal-title" class="text-sm font-bold text-ink mb-3">Yeni rozet</h2>
+
+            <label class="label" for="badge-name">Ad</label>
+            <input id="badge-name" class="input" maxlength="40" placeholder="ör. Efsanevi Katkıcı">
+
+            <label class="label mt-3" for="badge-icon">İkon (lucide adı, isteğe bağlı)</label>
+            <input id="badge-icon" class="input" maxlength="30" placeholder="ör. crown, sparkles, star">
+
+            <label class="label mt-3" for="badge-theme">Renk teması</label>
+            <select id="badge-theme" class="input">
+                <option value="gold">Altın</option>
+                <option value="cyan">Camgöbeği</option>
+                <option value="purple">Mor</option>
+                <option value="green">Yeşil</option>
+                <option value="red">Kırmızı</option>
+                <option value="plain">Sade</option>
+            </select>
+
+            <label class="flex items-center gap-2 mt-3 text-sm text-ink-soft">
+                <input type="checkbox" id="badge-shine">
+                Kayar ışık efekti (shine)
+            </label>
+
+            <div class="mt-3">
+                <span class="label">Önizleme</span>
+                <div id="badge-preview" class="mt-1"></div>
+            </div>
+
+            <p id="badge-error" class="text-bad text-xs mt-2 hidden"></p>
+
+            <div class="flex justify-end gap-2 mt-4">
+                <button onclick="closeBadgeModal()" class="btn btn-quiet">Vazgeç</button>
+                <button onclick="saveBadge()" class="btn btn-primary">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let editingBadgeId = null;
+
+        function badgeRow(b) {
+            const canManage = isOwner();
+            return `
+            <div class="card p-4 flex items-center gap-3">
+                <div class="flex-1 min-w-0">
+                    ${renderBadge(b, 'md')}
+                    <p class="hint mt-1">${b.userCount} kullanıcıda · ${b.shine ? 'shine açık' : 'shine kapalı'}</p>
+                </div>
+                ${canManage ? `
+                <div class="flex items-center gap-1 shrink-0">
+                    <button data-edit-badge="${b.id}" class="btn btn-quiet btn-sm">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button data-delete-badge="${b.id}" class="btn btn-quiet btn-sm btn-danger">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>` : ''}
+            </div>`;
+        }
+
+        async function loadBadges() {
+            const res = await apiFetch('/api/admin/badges');
+            if (!res.ok) return;
+            const badges = await res.json();
+
+            document.getElementById('badge-rows').innerHTML = badges.length
+                ? badges.map(badgeRow).join('')
+                : `<div class="card p-8 text-center hint">Henüz rozet yok.</div>`;
+
+            document.querySelectorAll('[data-edit-badge]').forEach(btn =>
+                btn.addEventListener('click', () => openBadgeModal(badges.find(b => b.id === Number(btn.dataset.editBadge)))));
+            document.querySelectorAll('[data-delete-badge]').forEach(btn =>
+                btn.addEventListener('click', () => deleteBadge(Number(btn.dataset.deleteBadge))));
+
+            lucide.createIcons();
+        }
+
+        function updateBadgePreview() {
+            document.getElementById('badge-preview').innerHTML = renderBadge({
+                name: document.getElementById('badge-name').value || 'Rozet adı',
+                icon: document.getElementById('badge-icon').value || null,
+                colorTheme: document.getElementById('badge-theme').value,
+                shine: document.getElementById('badge-shine').checked
+            }, 'md');
+            lucide.createIcons();
+        }
+
+        function openBadgeModal(badge = null) {
+            editingBadgeId = badge?.id ?? null;
+            document.getElementById('badge-modal-title').textContent = badge ? 'Rozeti düzenle' : 'Yeni rozet';
+            document.getElementById('badge-name').value = badge?.name || '';
+            document.getElementById('badge-icon').value = badge?.icon || '';
+            document.getElementById('badge-theme').value = badge?.colorTheme || 'plain';
+            document.getElementById('badge-shine').checked = badge?.shine || false;
+            document.getElementById('badge-error').classList.add('hidden');
+            updateBadgePreview();
+            document.getElementById('badge-modal').classList.remove('hidden');
+        }
+
+        function closeBadgeModal() {
+            editingBadgeId = null;
+            document.getElementById('badge-modal').classList.add('hidden');
+        }
+
+        async function saveBadge() {
+            const name = document.getElementById('badge-name').value.trim();
+            const icon = document.getElementById('badge-icon').value.trim();
+            const colorTheme = document.getElementById('badge-theme').value;
+            const shine = document.getElementById('badge-shine').checked;
+            const errorEl = document.getElementById('badge-error');
+
+            if (name.length < 2) {
+                errorEl.textContent = 'Ad en az 2 karakter olmalı.';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            const body = { name, icon: icon || null, colorTheme, shine };
+            const res = editingBadgeId
+                ? await apiFetchJson(`/api/admin/badges/${editingBadgeId}`, 'PUT', body)
+                : await apiFetchJson('/api/admin/badges', 'POST', body);
+
+            if (res.ok) {
+                closeBadgeModal();
+                loadBadges();
+            } else {
+                errorEl.textContent = await readError(res, 'Rozet kaydedilemedi.');
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        async function deleteBadge(id) {
+            if (!confirm('Bu rozet silinecek, kullanıcıların rozeti kaldırılacak. Emin misiniz?')) return;
+
+            const res = await apiFetch(`/api/admin/badges/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                loadBadges();
+            } else {
+                alert(await readError(res, 'Rozet silinemedi.'));
+            }
+        }
+
+        ['badge-name', 'badge-icon', 'badge-theme', 'badge-shine'].forEach(id =>
+            document.getElementById(id).addEventListener('input', updateBadgePreview));
+
+        document.getElementById('btn-new-badge').addEventListener('click', () => openBadgeModal());
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!requireStaff()) return;
+            if (!isAdmin()) { window.location.href = 'index.html'; return; }
+            renderPanelNav('badges');
+            if (isOwner()) document.getElementById('btn-new-badge').classList.remove('hidden');
+            loadBadges();
+        });
+    </script>
+</body>
+
+</html>

@@ -121,7 +121,12 @@
                     ${canDelete ? `<button onclick="deleteTopic()" class="btn btn-quiet btn-sm btn-danger">
                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Sil
                     </button>` : ''}
-                </div>` : '';
+                </div>` : (!mine && isLoggedIn() ? `
+                <div class="flex items-center gap-1 ml-auto">
+                    <button onclick="openReportModal('Topic', ${t.id})" class="btn btn-quiet btn-sm">
+                        <i data-lucide="flag" class="w-3.5 h-3.5"></i> Şikayet Et
+                    </button>
+                </div>` : '');
 
             document.getElementById('topic-container').innerHTML = `
                 <div class="flex items-center gap-2 mb-3 text-xs flex-wrap">
@@ -143,9 +148,9 @@
                     ? `<img src="${escapeHtml(t.authorAvatarUrl)}" alt="" class="w-full h-full object-cover">`
                     : `<span class="text-[11px] font-bold text-accent-soft">${escapeHtml(author.charAt(0).toUpperCase())}</span>`}
                         </span>
-                        ${renderUserName(author, 'text-[13px]')}
+                        ${renderUserName(author, t.badge, 'text-[13px]')}
                     </a>
-                    ${renderBadge(author)}
+                    ${renderBadge(t.badge)}
 
                     <button onclick="likeDetailTopic(this)" aria-pressed="${topicLiked}"
                         class="btn btn-quiet btn-sm ml-auto ${topicLiked ? 'text-bad' : ''}">
@@ -303,7 +308,10 @@
                 </button>` : ''}
                 ${canDelete ? `<button onclick="deleteComment(${c.id})" class="btn btn-quiet btn-sm btn-danger" title="Sil" aria-label="Sil">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>` : ''}` : '';
+                </button>` : ''}` : (!isMine(author) && isLoggedIn() ? `
+                <button onclick="openReportModal('Comment', ${c.id})" class="btn btn-quiet btn-sm" title="Şikayet Et" aria-label="Şikayet Et">
+                    <i data-lucide="flag" class="w-3.5 h-3.5"></i>
+                </button>` : '');
 
             return `
             <div class="card p-4" data-comment-id="${c.id}" data-author="${escapeHtml(author)}">
@@ -314,9 +322,9 @@
                     ? `<img src="${escapeHtml(c.authorAvatarUrl)}" alt="" class="w-full h-full object-cover">`
                     : `<span class="text-[10px] font-bold text-accent-soft">${escapeHtml(author.charAt(0).toUpperCase())}</span>`}
                         </span>
-                        ${renderUserName(author, 'text-[13px]')}
+                        ${renderUserName(author, c.badge, 'text-[13px]')}
                     </a>
-                    ${renderBadge(author)}
+                    ${renderBadge(c.badge)}
                     <span class="text-ink-faint ml-auto" title="${escapeHtml(formatDate(c.createdAt))}">
                         ${escapeHtml(timeAgo(c.createdAt))}${c.updatedAt ? ' · düzenlendi' : ''}
                     </span>
