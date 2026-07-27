@@ -3,7 +3,7 @@
 // derleme zamanında burada okunuyor. Renk değerleri wwwroot/css/app.css'teki
 // :root custom property'leriyle birebir aynı tutulmalı.
 module.exports = {
-    content: ["./wwwroot/**/*.html", "./wwwroot/js/**/*.js"],
+    content: ["./wwwroot/**/*.html", "./wwwroot/**/*.js"],
     theme: {
         extend: {
             colors: {

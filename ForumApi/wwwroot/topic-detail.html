@@ -96,6 +96,10 @@
             const t = currentTopic;
             const author = t.authorUsername;
             const mine = isMine(author);
+            // Sahibi her zaman düzenler/siler. Sahibi değilsen: Admin+ düzenleyebilir,
+            // Moderator+ silebilir (moderasyon uçlarına bkz. AdminController).
+            const canEdit = mine || isAdmin();
+            const canDelete = mine || isModerator();
 
             let media = '';
             if (t.fileUrls?.length) {
@@ -109,14 +113,14 @@
                 media = `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">${images}</div>`;
             }
 
-            const ownerBar = mine ? `
+            const ownerBar = (canEdit || canDelete) ? `
                 <div class="flex items-center gap-1 ml-auto">
-                    <button onclick="startEditTopic()" class="btn btn-quiet btn-sm">
+                    ${canEdit ? `<button onclick="startEditTopic()" class="btn btn-quiet btn-sm">
                         <i data-lucide="pencil" class="w-3.5 h-3.5"></i> Düzenle
-                    </button>
-                    <button onclick="deleteTopic()" class="btn btn-quiet btn-sm btn-danger">
+                    </button>` : ''}
+                    ${canDelete ? `<button onclick="deleteTopic()" class="btn btn-quiet btn-sm btn-danger">
                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Sil
-                    </button>
+                    </button>` : ''}
                 </div>` : '';
 
             document.getElementById('topic-container').innerHTML = `
@@ -189,8 +193,14 @@
             errorBox.classList.add('hidden');
             btn.disabled = true;
 
+            // Sahibiysen kendi ucun, değilsen (moderasyon) admin ucu — sunucu
+            // her ikisinde de kimin çağırdığını yeniden doğruluyor.
+            const endpoint = isMine(currentTopic.authorUsername)
+                ? `/api/topics/${currentTopic.id}`
+                : `/api/admin/topics/${currentTopic.id}`;
+
             try {
-                const res = await apiFetchJson(`/api/topics/${currentTopic.id}`, 'PUT', {
+                const res = await apiFetchJson(endpoint, 'PUT', {
                     title: document.getElementById('edit-title').value,
                     categoryId: parseInt(document.getElementById('edit-category').value),
                     content: document.getElementById('edit-content').value
@@ -212,8 +222,12 @@
         async function deleteTopic() {
             if (!confirm('Bu konu, tüm yanıtları ve ekleri kalıcı olarak silinecek. Emin misiniz?')) return;
 
+            const endpoint = isMine(currentTopic.authorUsername)
+                ? `/api/topics/${currentTopic.id}`
+                : `/api/admin/topics/${currentTopic.id}`;
+
             try {
-                const res = await apiFetch(`/api/topics/${currentTopic.id}`, { method: 'DELETE' });
+                const res = await apiFetch(endpoint, { method: 'DELETE' });
                 if (res.ok) {
                     window.location.href = 'index.html';
                 } else {
@@ -280,17 +294,19 @@
         function renderComment(c) {
             const author = c.authorUsername;
             const liked = likedCommentIds.has(c.id);
+            const canEdit = isMine(author) || isAdmin();
+            const canDelete = isMine(author) || isModerator();
 
-            const ownerActions = isMine(author) ? `
-                <button onclick="startEditComment(${c.id})" class="btn btn-quiet btn-sm" title="Düzenle" aria-label="Düzenle">
+            const ownerActions = (canEdit || canDelete) ? `
+                ${canEdit ? `<button onclick="startEditComment(${c.id})" class="btn btn-quiet btn-sm" title="Düzenle" aria-label="Düzenle">
                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                </button>
-                <button onclick="deleteComment(${c.id})" class="btn btn-quiet btn-sm btn-danger" title="Sil" aria-label="Sil">
+                </button>` : ''}
+                ${canDelete ? `<button onclick="deleteComment(${c.id})" class="btn btn-quiet btn-sm btn-danger" title="Sil" aria-label="Sil">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>` : '';
+                </button>` : ''}` : '';
 
             return `
-            <div class="card p-4" data-comment-id="${c.id}">
+            <div class="card p-4" data-comment-id="${c.id}" data-author="${escapeHtml(author)}">
                 <div class="flex items-center gap-2 mb-2.5 text-xs flex-wrap">
                     <a href="profile.html?u=${escapeAttr(author)}" class="flex items-center gap-2 hover:opacity-80 transition">
                         <span class="w-6 h-6 rounded-md bg-accent/15 border border-accent/25 grid place-items-center shrink-0 overflow-hidden">
@@ -343,8 +359,13 @@
             if (!textarea) return;
             btn.disabled = true;
 
+            const card = document.querySelector(`[data-comment-id="${commentId}"]`);
+            const endpoint = isMine(card?.dataset.author)
+                ? `/api/comments/${commentId}`
+                : `/api/admin/comments/${commentId}`;
+
             try {
-                const res = await apiFetchJson(`/api/comments/${commentId}`, 'PUT', { content: textarea.value });
+                const res = await apiFetchJson(endpoint, 'PUT', { content: textarea.value });
                 if (res.ok) {
                     loadComments();
                 } else {
@@ -360,8 +381,13 @@
         async function deleteComment(commentId) {
             if (!confirm('Bu yanıt kalıcı olarak silinecek. Emin misiniz?')) return;
 
+            const card = document.querySelector(`[data-comment-id="${commentId}"]`);
+            const endpoint = isMine(card?.dataset.author)
+                ? `/api/comments/${commentId}`
+                : `/api/admin/comments/${commentId}`;
+
             try {
-                const res = await apiFetch(`/api/comments/${commentId}`, { method: 'DELETE' });
+                const res = await apiFetch(endpoint, { method: 'DELETE' });
                 if (res.ok) {
                     loadComments();
                 } else {

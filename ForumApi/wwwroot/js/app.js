@@ -179,6 +179,7 @@ function saveSession(data) {
         email: data.email,
         userId: data.userId,
         avatarUrl: data.avatarUrl || null,
+        role: data.role || 'User',
         expiresAt: Date.now() + (data.expiresInHours || 12) * 3600 * 1000
     }));
 }
@@ -211,6 +212,28 @@ function logout() {
 function requireLogin() {
     if (!isLoggedIn()) {
         window.location.href = 'auth.html';
+        return false;
+    }
+    return true;
+}
+
+// ── Rol kontrolü ─────────────────────────────────────────────
+// Gerçek yetkilendirme her zaman sunucuda (/api/admin/*) — bunlar yalnızca
+// arayüzde neyin gösterileceğine karar vermek için.
+function getRole() {
+    return getSession()?.role || null;
+}
+
+function isModerator() { return ['Moderator', 'Admin', 'Owner'].includes(getRole()); }
+function isAdmin() { return ['Admin', 'Owner'].includes(getRole()); }
+function isOwner() { return getRole() === 'Owner'; }
+
+// Panel sayfalarının başında çağrılır: girişli değilse veya en az Moderator
+// değilse siteye geri yollar.
+function requireStaff() {
+    if (!requireLogin()) return false;
+    if (!isModerator()) {
+        window.location.href = 'index.html';
         return false;
     }
     return true;
@@ -327,6 +350,7 @@ function renderHeader(options = {}) {
                 </a>
                 ${navLink('index.html', 'layout-list', 'Konular', 'home')}
                 ${showNewTopic ? navLink('create-topic.html', 'square-pen', 'Yeni Konu', 'new') : ''}
+                ${isModerator() ? navLink('panel/index.html', 'shield', 'Panel', 'panel') : ''}
                 ${userArea}
             </div>
         </header>`;

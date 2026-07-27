@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İçerik — Panel — KORSANCIM</title>
+    <link rel="icon" type="image/svg+xml" href="../static/favicon.svg">
+    <link rel="stylesheet" href="../css/tailwind.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../js/app.js"></script>
+    <script src="panel.js"></script>
+</head>
+
+<body class="bg-base text-ink font-sans">
+
+    <div id="panel-header"></div>
+
+    <main class="max-w-5xl mx-auto px-4 py-6 space-y-4">
+
+        <div>
+            <h1 class="text-lg font-bold text-ink mb-1">İçerik Moderasyonu</h1>
+            <p class="hint">Tüm konular. Düzenlemek için konuya girin — moderasyon
+                butonları orada da görünür; buradan doğrudan silebilirsiniz.</p>
+        </div>
+
+        <select id="category-filter" class="input max-w-xs">
+            <option value="0">Tüm kategoriler</option>
+        </select>
+
+        <div id="topic-rows" class="space-y-2">
+            <div class="card p-8 text-center"><div class="skeleton h-4 w-32 mx-auto"></div></div>
+        </div>
+        <div id="pagination" class="flex justify-center gap-2"></div>
+    </main>
+
+    <script>
+        let currentPage = 1;
+        let currentCategory = 0;
+
+        async function loadTopics(page = 1) {
+            currentPage = page;
+            const params = new URLSearchParams({ page, pageSize: 20 });
+            if (currentCategory > 0) params.set('categoryId', currentCategory);
+
+            const res = await fetch(`/api/topics?${params}`);
+            if (!res.ok) return;
+            const data = await res.json();
+
+            document.getElementById('topic-rows').innerHTML = data.items.length
+                ? data.items.map(t => `
+                    <div class="card p-3 flex items-center gap-3" data-topic-id="${t.id}">
+                        <div class="min-w-0 flex-1">
+                            <a href="../topic-detail.html?id=${t.id}" class="font-medium text-ink hover:text-accent-soft transition truncate block">${escapeHtml(t.title)}</a>
+                            <div class="hint truncate">
+                                ${escapeHtml(t.categoryName || '')} · ${escapeHtml(t.authorUsername)} · ${escapeHtml(timeAgo(t.createdAt))}
+                                · ${t.commentCount} yanıt · ${t.likeCount} beğeni
+                            </div>
+                        </div>
+                        <a href="../topic-detail.html?id=${t.id}" class="btn btn-quiet btn-sm shrink-0">İncele</a>
+                        <button data-delete-topic="${t.id}" class="btn btn-quiet btn-sm btn-danger shrink-0">Sil</button>
+                    </div>`).join('')
+                : `<div class="card p-8 text-center hint">Konu bulunamadı.</div>`;
+
+            document.querySelectorAll('[data-delete-topic]').forEach(btn =>
+                btn.addEventListener('click', () => deleteTopic(Number(btn.dataset.deleteTopic))));
+
+            renderPagination('pagination', data.page, data.totalPages, loadTopics);
+        }
+
+        async function deleteTopic(id) {
+            if (!confirm('Bu konu, tüm yanıtları ve ekleri kalıcı olarak silinecek. Emin misiniz?')) return;
+
+            const res = await apiFetch(`/api/admin/topics/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                loadTopics(currentPage);
+            } else {
+                alert(await readError(res, 'Konu silinemedi.'));
+            }
+        }
+
+        async function loadCategoryFilter() {
+            const categories = await getCategories();
+            const select = document.getElementById('category-filter');
+            select.innerHTML = `<option value="0">Tüm kategoriler</option>` +
+                categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+
+            select.addEventListener('change', () => {
+                currentCategory = parseInt(select.value);
+                loadTopics(1);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!requireStaff()) return;
+            renderPanelNav('content');
+            await loadCategoryFilter();
+            loadTopics();
+        });
+    </script>
+</body>
+
+</html>

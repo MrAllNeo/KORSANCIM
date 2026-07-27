@@ -17,6 +17,8 @@ namespace ForumApi.Data
         public DbSet<TopicLike> TopicLikes { get; set; }
         public DbSet<CommentLike> CommentLikes { get; set; }
 
+        public DbSet<Report> Reports { get; set; }
+
         protected override void ConfigureConventions(ModelConfigurationBuilder builder)
         {
             base.ConfigureConventions(builder);
@@ -114,6 +116,22 @@ namespace ForumApi.Data
                 .HasOne(l => l.User).WithMany()
                 .HasForeignKey(l => l.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Şikayet eden silinirse şikayet de gider (Cascade, diğer içerik
+            // ilişkileriyle tutarlı); işlemi yapan admin silinirse şikayet
+            // kaydı kalır, yalnızca "kim işledi" bilgisi boşa düşer (SetNull).
+            modelBuilder.Entity<Report>()
+                .HasOne(r => r.Reporter).WithMany()
+                .HasForeignKey(r => r.ReporterUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Report>()
+                .HasOne(r => r.HandledBy).WithMany()
+                .HasForeignKey(r => r.HandledByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Report>()
+                .HasIndex(r => new { r.Status, r.CreatedAt });
 
             // Kategoriler — slug ve ad benzersiz, başlangıç verisi migration ile gelir.
             modelBuilder.Entity<Category>().HasIndex(c => c.Slug).IsUnique();

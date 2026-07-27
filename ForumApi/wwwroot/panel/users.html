@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kullanıcılar — Panel — KORSANCIM</title>
+    <link rel="icon" type="image/svg+xml" href="../static/favicon.svg">
+    <link rel="stylesheet" href="../css/tailwind.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../js/app.js"></script>
+    <script src="panel.js"></script>
+</head>
+
+<body class="bg-base text-ink font-sans">
+
+    <div id="panel-header"></div>
+
+    <main class="max-w-5xl mx-auto px-4 py-6 space-y-4">
+
+        <div>
+            <h1 class="text-lg font-bold text-ink mb-1">Kullanıcılar</h1>
+            <p class="hint">Ban/unban ve rol yönetimi.</p>
+        </div>
+
+        <input type="text" id="search-input" class="input" placeholder="Kullanıcı adı veya e-posta ara…">
+
+        <div class="card overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-ink-faint text-xs border-b border-line">
+                            <th class="p-3 font-medium">Kullanıcı</th>
+                            <th class="p-3 font-medium">Rol</th>
+                            <th class="p-3 font-medium">Durum</th>
+                            <th class="p-3 font-medium">Kayıt</th>
+                            <th class="p-3 font-medium text-right">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-rows">
+                        <tr>
+                            <td colspan="5" class="p-6 text-center hint">Yükleniyor…</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="pagination" class="flex justify-center gap-2"></div>
+    </main>
+
+    <div id="ban-modal" class="hidden fixed inset-0 z-50 bg-black/60 grid place-items-center p-4">
+        <div class="card p-5 w-full max-w-sm">
+            <h2 class="text-sm font-bold text-ink mb-3">Kullanıcıyı banla</h2>
+            <label class="label" for="ban-reason">Sebep (isteğe bağlı)</label>
+            <textarea id="ban-reason" rows="3" class="input" placeholder="Sebep yazabilirsiniz…"></textarea>
+            <div class="flex justify-end gap-2 mt-4">
+                <button onclick="closeBanModal()" class="btn btn-quiet">Vazgeç</button>
+                <button onclick="confirmBan()" class="btn btn-primary btn-danger">Banla</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let searchTerm = '';
+        let banTargetId = null;
+        let searchDebounce = null;
+
+        const ROLE_BADGE_CLASS = {
+            User: 'bg-sunken text-ink-soft border border-line',
+            Moderator: 'bg-accent-dim text-accent-soft border border-accent/30',
+            Admin: 'bg-accent/20 text-accent-soft border border-accent/40'
+        };
+
+        function roleBadge(role) {
+            if (role === 'Owner') {
+                return `<span class="tier-badge tier-shine tier-creator-badge text-[10px] px-2 py-0.5 rounded-md">Owner</span>`;
+            }
+            const cls = ROLE_BADGE_CLASS[role] || ROLE_BADGE_CLASS.User;
+            return `<span class="text-[10px] px-2 py-0.5 rounded-md ${cls}">${escapeHtml(role)}</span>`;
+        }
+
+        function roleCell(user) {
+            if (!isOwner() || user.role === 'Owner') return roleBadge(user.role);
+
+            const roles = ['User', 'Moderator', 'Admin'];
+            const options = roles.map(r => `<option value="${r}" ${r === user.role ? 'selected' : ''}>${r}</option>`).join('');
+            return `<select data-user-id="${user.id}" class="role-select input" style="padding:4px 8px;font-size:12px;width:auto;">${options}</select>`;
+        }
+
+        async function loadUsers(page = 1) {
+            currentPage = page;
+            const params = new URLSearchParams({ page, pageSize: 20 });
+            if (searchTerm) params.set('search', searchTerm);
+
+            const res = await apiFetch(`/api/admin/users?${params}`);
+            if (!res.ok) return;
+
+            const data = await res.json();
+
+            document.getElementById('user-rows').innerHTML = data.items.length
+                ? data.items.map(u => `
+                    <tr class="border-b border-line last:border-0">
+                        <td class="p-3">
+                            <div class="font-medium text-ink">${escapeHtml(u.username)}</div>
+                            <div class="hint">${escapeHtml(u.email)}</div>
+                        </td>
+                        <td class="p-3">${roleCell(u)}</td>
+                        <td class="p-3">
+                            ${u.isBanned
+                        ? `<span class="text-[10px] px-2 py-0.5 rounded-md bg-bad/15 text-bad border border-bad/30">Banlı</span>`
+                        : `<span class="text-[10px] px-2 py-0.5 rounded-md bg-ok/15 text-ok border border-ok/30">Aktif</span>`}
+                        </td>
+                        <td class="p-3 hint">${formatDate(u.createdAt)}</td>
+                        <td class="p-3">
+                            <div class="flex justify-end gap-1">
+                                ${u.isBanned
+                        ? `<button data-unban-id="${u.id}" class="btn btn-quiet btn-sm">Unban</button>`
+                        : `<button data-ban-id="${u.id}" class="btn btn-quiet btn-sm btn-danger">Banla</button>`}
+                                <a href="../profile.html?u=${escapeAttr(u.username)}" class="btn btn-quiet btn-sm">Profil</a>
+                            </div>
+                        </td>
+                    </tr>`).join('')
+                : `<tr><td colspan="5" class="p-6 text-center hint">Kullanıcı bulunamadı.</td></tr>`;
+
+            document.querySelectorAll('[data-ban-id]').forEach(btn =>
+                btn.addEventListener('click', () => openBanModal(Number(btn.dataset.banId))));
+            document.querySelectorAll('[data-unban-id]').forEach(btn =>
+                btn.addEventListener('click', () => unban(Number(btn.dataset.unbanId))));
+            document.querySelectorAll('.role-select').forEach(sel =>
+                sel.addEventListener('change', () => changeRole(Number(sel.dataset.userId), sel.value)));
+
+            renderPagination('pagination', data.page, data.totalPages, loadUsers);
+        }
+
+        function openBanModal(id) {
+            banTargetId = id;
+            document.getElementById('ban-reason').value = '';
+            document.getElementById('ban-modal').classList.remove('hidden');
+        }
+
+        function closeBanModal() {
+            banTargetId = null;
+            document.getElementById('ban-modal').classList.add('hidden');
+        }
+
+        async function confirmBan() {
+            const reason = document.getElementById('ban-reason').value;
+            const res = await apiFetchJson(`/api/admin/users/${banTargetId}/ban`, 'POST', { reason });
+            closeBanModal();
+            if (res.ok) {
+                loadUsers(currentPage);
+            } else {
+                alert(await readError(res, 'Banlanamadı.'));
+            }
+        }
+
+        async function unban(id) {
+            const res = await apiFetch(`/api/admin/users/${id}/unban`, { method: 'POST' });
+            if (res.ok) {
+                loadUsers(currentPage);
+            } else {
+                alert(await readError(res, 'Ban kaldırılamadı.'));
+            }
+        }
+
+        async function changeRole(id, role) {
+            const res = await apiFetchJson(`/api/admin/users/${id}/role`, 'PUT', { role });
+            if (!res.ok) {
+                alert(await readError(res, 'Rol değiştirilemedi.'));
+            }
+            loadUsers(currentPage);
+        }
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => {
+                searchTerm = e.target.value.trim();
+                loadUsers(1);
+            }, 300);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!requireStaff()) return;
+            renderPanelNav('users');
+            loadUsers();
+        });
+    </script>
+</body>
+
+</html>

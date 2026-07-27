@@ -10,11 +10,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ForumApi.Controllers
 {
-    // Moderatör: kullanıcı banlama + içerik silme. Admin: bunlara ek olarak rol atama.
-    // Kimse Admin rolündeki bir hesabı banlayamaz — kilitlenme riskine karşı.
+    // İzin matrisi (bkz. Roles.cs):
+    // Moderator : kullanıcı banlama, içerik silme, şikayet işleme.
+    // Admin     : Moderator + başkasının içeriğini düzenleme, şikayet işleme.
+    // Owner     : Admin + rol atama/azletme (tek yetkili — Admin bile rol
+    //             değiştiremez, bu adminler arası yetki çakışmasını önler).
+    // Kimse Admin veya Owner rolündeki bir hesabı banlayamaz — kilitlenme
+    // riskine karşı. Bir Admin'in yetkisi kötüye kullanılırsa çözüm önce
+    // Owner'ın onu User/Moderator'a indirmesi, SONRA banlanmasıdır.
     [ApiController]
     [Route("api/admin")]
-    [Authorize(Roles = Roles.Admin + "," + Roles.Moderator)]
+    [Authorize(Roles = Roles.ModAndAbove)]
     public class AdminController : ControllerBase
     {
         private const int DefaultPageSize = 20;
@@ -41,6 +47,68 @@ namespace ForumApi.Controllers
         {
             [Required(ErrorMessage = "Rol zorunludur.")]
             public string Role { get; set; } = string.Empty;
+        }
+
+        public class ModerateEditTopicDto
+        {
+            [Required(ErrorMessage = "Başlık zorunludur.")]
+            [StringLength(200, MinimumLength = 3, ErrorMessage = "Başlık 3-200 karakter olmalıdır.")]
+            public string Title { get; set; } = string.Empty;
+
+            [Range(1, int.MaxValue, ErrorMessage = "Geçerli bir kategori seçin.")]
+            public int CategoryId { get; set; }
+
+            [Required(ErrorMessage = "İçerik zorunludur.")]
+            [StringLength(20000, MinimumLength = 1, ErrorMessage = "İçerik en fazla 20000 karakter olabilir.")]
+            public string Content { get; set; } = string.Empty;
+        }
+
+        public class ModerateEditCommentDto
+        {
+            [Required(ErrorMessage = "Yorum içeriği boş olamaz.")]
+            [StringLength(5000, MinimumLength = 1, ErrorMessage = "Yorum en fazla 5000 karakter olabilir.")]
+            public string Content { get; set; } = string.Empty;
+        }
+
+        public class UpdateReportStatusDto
+        {
+            [Required(ErrorMessage = "Durum zorunludur.")]
+            public string Status { get; set; } = string.Empty;
+
+            [StringLength(500, ErrorMessage = "Çözüm notu en fazla 500 karakter olabilir.")]
+            public string? ResolutionNote { get; set; }
+        }
+
+        // GET: api/admin/stats — panel dashboard'u için toplu sayımlar.
+        [HttpGet("stats")]
+        public async Task<IActionResult> GetStats()
+        {
+            var since24h = DateTime.UtcNow.AddHours(-24);
+
+            var totalUsers = await _context.Users.CountAsync();
+            var bannedUsers = await _context.Users.CountAsync(u => u.IsBanned);
+            var totalTopics = await _context.Topics.CountAsync();
+            var totalComments = await _context.Comments.CountAsync();
+            var pendingReports = await _context.Reports.CountAsync(r => r.Status == ReportStatus.Pending);
+            var newUsersLast24h = await _context.Users.CountAsync(u => u.CreatedAt >= since24h);
+            var newTopicsLast24h = await _context.Topics.CountAsync(t => t.CreatedAt >= since24h);
+
+            var topicsByCategory = await _context.Categories
+                .OrderBy(c => c.DisplayOrder)
+                .Select(c => new { c.Name, Count = c.Topics.Count })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                totalUsers,
+                bannedUsers,
+                totalTopics,
+                totalComments,
+                pendingReports,
+                newUsersLast24h,
+                newTopicsLast24h,
+                topicsByCategory
+            });
         }
 
         // GET: api/admin/users?search=&page=&pageSize=
@@ -91,9 +159,9 @@ namespace ForumApi.Controllers
                 return BadRequest(new { error = "Kendinizi banlayamazsınız." });
             }
 
-            if (target.Role == Roles.Admin)
+            if (target.Role == Roles.Admin || target.Role == Roles.Owner)
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new { error = "Admin rolündeki bir kullanıcı banlanamaz." });
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = "Admin veya Owner rolündeki bir kullanıcı banlanamaz." });
             }
 
             target.IsBanned = true;
@@ -117,14 +185,15 @@ namespace ForumApi.Controllers
             return Ok(new { message = "Ban kaldırıldı.", userId = target.Id });
         }
 
-        // PUT: api/admin/users/5/role — yalnızca Admin.
-        [Authorize(Roles = Roles.Admin)]
+        // PUT: api/admin/users/5/role — yalnızca Owner. Admin dahil kimse rol
+        // atayamaz; bu, adminlerin birbirini terfi/azletmesini imkânsız kılar.
+        [Authorize(Roles = Roles.Owner)]
         [HttpPut("users/{id}/role")]
         public async Task<IActionResult> ChangeRole(int id, [FromBody] ChangeRoleDto dto)
         {
-            if (!Roles.IsValid(dto.Role))
+            if (!Roles.IsAssignable(dto.Role))
             {
-                return BadRequest(new { error = $"Geçersiz rol. Geçerli değerler: {string.Join(", ", Roles.All)}" });
+                return BadRequest(new { error = $"Geçersiz rol. Atanabilir roller: {string.Join(", ", Roles.Assignable)}" });
             }
 
             var target = await _context.Users.FindAsync(id);
@@ -133,6 +202,11 @@ namespace ForumApi.Controllers
             if (target.Id == CurrentUserId)
             {
                 return BadRequest(new { error = "Kendi rolünüzü değiştiremezsiniz." });
+            }
+
+            if (target.Role == Roles.Owner)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = "Owner rolündeki bir kullanıcının rolü bu uçtan değiştirilemez." });
             }
 
             target.Role = dto.Role;
@@ -160,6 +234,30 @@ namespace ForumApi.Controllers
             return Ok(new { message = "Konu moderasyon tarafından silindi." });
         }
 
+        // PUT: api/admin/topics/5 — sahiplikten bağımsız moderasyon düzenlemesi.
+        // Moderator bunu yapamaz; içerik değiştirmek silmekten daha hassas.
+        [Authorize(Roles = Roles.AdminAndAbove)]
+        [HttpPut("topics/{id}")]
+        public async Task<IActionResult> EditTopic(int id, [FromBody] ModerateEditTopicDto dto)
+        {
+            var topic = await _context.Topics.FindAsync(id);
+            if (topic == null) return NotFound(new { error = "Konu bulunamadı." });
+
+            if (!await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId))
+            {
+                return BadRequest(new { error = "Böyle bir kategori yok." });
+            }
+
+            topic.Title = dto.Title;
+            topic.CategoryId = dto.CategoryId;
+            topic.Content = dto.Content;
+            topic.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Konu moderasyon tarafından düzenlendi." });
+        }
+
         // DELETE: api/admin/comments/5 — sahiplikten bağımsız moderasyon silmesi.
         [HttpDelete("comments/{id}")]
         public async Task<IActionResult> DeleteComment(int id)
@@ -171,6 +269,125 @@ namespace ForumApi.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Yorum moderasyon tarafından silindi." });
+        }
+
+        // PUT: api/admin/comments/5 — sahiplikten bağımsız moderasyon düzenlemesi.
+        [Authorize(Roles = Roles.AdminAndAbove)]
+        [HttpPut("comments/{id}")]
+        public async Task<IActionResult> EditComment(int id, [FromBody] ModerateEditCommentDto dto)
+        {
+            var comment = await _context.Comments.FindAsync(id);
+            if (comment == null) return NotFound(new { error = "Yorum bulunamadı." });
+
+            comment.Content = dto.Content;
+            comment.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Yorum moderasyon tarafından düzenlendi." });
+        }
+
+        // GET: api/admin/reports?status=&page=&pageSize=
+        // Bekleyenler önce, sonra en yeni. Hedef önizlemesi polymorphic olduğu
+        // için (Topic/Comment/User) tek bir join yerine türe göre ayrı toplu
+        // sorgularla çözülüyor.
+        [HttpGet("reports")]
+        public async Task<IActionResult> GetReports([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
+        {
+            if (!string.IsNullOrWhiteSpace(status) && !ReportStatus.IsValid(status))
+            {
+                return BadRequest(new { error = $"Geçersiz durum. Geçerli değerler: {string.Join(", ", ReportStatus.All)}" });
+            }
+
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+
+            var query = _context.Reports
+                .Include(r => r.Reporter)
+                .Include(r => r.HandledBy)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                query = query.Where(r => r.Status == status);
+            }
+
+            var total = await query.CountAsync();
+
+            var reports = await query
+                .OrderBy(r => r.Status == ReportStatus.Pending ? 0 : 1)
+                .ThenByDescending(r => r.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var topicIds = reports.Where(r => r.TargetType == ReportTargetType.Topic).Select(r => r.TargetId).ToList();
+            var commentIds = reports.Where(r => r.TargetType == ReportTargetType.Comment).Select(r => r.TargetId).ToList();
+            var userIds = reports.Where(r => r.TargetType == ReportTargetType.User).Select(r => r.TargetId).ToList();
+
+            var topicTitles = await _context.Topics.Where(t => topicIds.Contains(t.Id)).ToDictionaryAsync(t => t.Id, t => t.Title);
+            var commentBodies = await _context.Comments.Where(c => commentIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id, c => c.Content);
+            var usernames = await _context.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Username);
+
+            string TargetPreview(Report r)
+            {
+                var found = r.TargetType switch
+                {
+                    ReportTargetType.Topic => topicTitles.GetValueOrDefault(r.TargetId),
+                    ReportTargetType.Comment => commentBodies.GetValueOrDefault(r.TargetId),
+                    ReportTargetType.User => usernames.GetValueOrDefault(r.TargetId),
+                    _ => null
+                };
+
+                if (found == null) return "(içerik silinmiş)";
+                return found.Length > 120 ? found[..120] + "…" : found;
+            }
+
+            return Ok(new
+            {
+                items = reports.Select(r => new
+                {
+                    r.Id,
+                    r.TargetType,
+                    r.TargetId,
+                    r.Reason,
+                    r.Note,
+                    r.Status,
+                    r.ResolutionNote,
+                    r.CreatedAt,
+                    r.ResolvedAt,
+                    ReporterUsername = r.Reporter?.Username ?? "(silinmiş kullanıcı)",
+                    HandledByUsername = r.HandledBy?.Username,
+                    TargetPreview = TargetPreview(r)
+                }),
+                page,
+                pageSize,
+                total,
+                totalPages = (int)Math.Ceiling(total / (double)pageSize)
+            });
+        }
+
+        // PUT: api/admin/reports/5/status — Pending→Reviewing→Resolved/Dismissed
+        // hepsi tek uçtan yönetiliyor; terminal durumlarda ResolvedAt basılıyor.
+        [HttpPut("reports/{id}/status")]
+        public async Task<IActionResult> UpdateReportStatus(int id, [FromBody] UpdateReportStatusDto dto)
+        {
+            if (!ReportStatus.IsValid(dto.Status))
+            {
+                return BadRequest(new { error = $"Geçersiz durum. Geçerli değerler: {string.Join(", ", ReportStatus.All)}" });
+            }
+
+            var report = await _context.Reports.FindAsync(id);
+            if (report == null) return NotFound(new { error = "Şikayet bulunamadı." });
+
+            report.Status = dto.Status;
+            report.ResolutionNote = dto.ResolutionNote;
+            report.HandledByUserId = CurrentUserId;
+            report.ResolvedAt = ReportStatus.IsTerminal(dto.Status) ? DateTime.UtcNow : null;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Şikayet güncellendi.", reportId = report.Id, status = report.Status });
         }
     }
 }

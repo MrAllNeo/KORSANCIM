@@ -15,7 +15,8 @@ ForumApi/
 └── wwwroot/         Arayüz (index, auth, create-topic, topic-detail, profile)
     ├── css/app.css       Tasarım sistemi (renk, kart, buton, rozet)
     ├── css/tailwind.css  Derlenmiş Tailwind çıktısı (git'e dahil, elle düzenlenmez)
-    ├── js/app.js         Ortak yardımcılar: header, oturum, XSS kaçışı, rozetler
+    ├── js/app.js         Ortak yardımcılar: header, oturum, rol kontrolü, XSS kaçışı, rozetler
+    ├── panel/            Yönetim paneli (Moderator+) — dashboard, kullanıcılar, içerik
     └── uploads/          Kullanıcı yüklemeleri (git'e dahil değil)
 ```
 
@@ -100,22 +101,44 @@ Konu listesi varsayılan 20, en fazla 50 kayıt döner; yanıt
 | GET | `/api/categories` | Kategori listesi + kategori başına konu sayısı |
 | GET | `/api/comments/topic/{id}/likes` 🔒 | Bu konuda beğendiğim yanıtların id'leri |
 
-### Yönetim uçları (rol gerektirir)
+### Şikayet (Report) uçları
 
-⚙️ = `Admin` veya `Moderator` rolü gerektirir. ⚙️👑 = yalnızca `Admin`.
+Herkes (girişli) şikayet oluşturabilir; sonucu yalnızca kendi şikayetlerinde görür.
 
 | Metot | Yol | Açıklama |
 |---|---|---|
-| GET | `/api/admin/users?search=&page=&pageSize=` ⚙️ | Kullanıcı listesi (rol/ban durumu dahil) |
-| POST | `/api/admin/users/{id}/ban` ⚙️ | Kullanıcıyı banla (`{ reason }`) — Admin banlanamaz, kendine uygulanamaz |
-| POST | `/api/admin/users/{id}/unban` ⚙️ | Banı kaldır |
-| PUT | `/api/admin/users/{id}/role` ⚙️👑 | Rol ata: `User` / `Moderator` / `Admin` |
-| DELETE | `/api/admin/topics/{id}` ⚙️ | Konuyu sahiplikten bağımsız sil (moderasyon) |
-| DELETE | `/api/admin/comments/{id}` ⚙️ | Yorumu sahiplikten bağımsız sil (moderasyon) |
+| POST | `/api/reports` 🔒 | Şikayet oluştur (`{ targetType: Topic\|Comment\|User, targetId, reason, note? }`) |
+| GET | `/api/reports/mine` 🔒 | Kendi şikayetlerimin durumu |
 
-İlk admin, veritabanı migration'ında `CREATOR` kullanıcı adına otomatik atanır;
-sonrasında rol yükseltmesi yalnızca mevcut bir Admin üzerinden yapılabilir
-(kendini yükseltme/self-servis rol atama yok).
+Aynı hedefe, işlemi bekleyen bir şikayeti varken tekrar şikayet açılamaz.
+
+### Yönetim uçları (rol gerektirir)
+
+⚙️ = `Moderator`, `Admin` veya `Owner` rolü gerektirir. ⚙️👤 = yalnızca `Admin`
+veya `Owner` (Moderator giremez). ⚙️👑 = yalnızca `Owner`.
+
+Rol hiyerarşisi: `User < Moderator < Admin < Owner`. Owner tekildir (site
+sahibi), migration'da `CREATOR` kullanıcı adına otomatik atanır ve hiçbir
+uçtan yeniden atanamaz. **Admin dahil kimse rol değiştiremez** — bunu yalnızca
+Owner yapabilir; bu, adminlerin birbirini terfi/azletmesini imkânsız kılar.
+
+| Metot | Yol | Açıklama |
+|---|---|---|
+| GET | `/api/admin/stats` ⚙️ | Panel dashboard'u için toplu sayımlar (kullanıcı/konu/yorum, bekleyen şikayet, son 24s) |
+| GET | `/api/admin/users?search=&page=&pageSize=` ⚙️ | Kullanıcı listesi (rol/ban durumu dahil) |
+| POST | `/api/admin/users/{id}/ban` ⚙️ | Kullanıcıyı banla (`{ reason }`) — Admin/Owner banlanamaz, kendine uygulanamaz |
+| POST | `/api/admin/users/{id}/unban` ⚙️ | Banı kaldır |
+| PUT | `/api/admin/users/{id}/role` ⚙️👑 | Rol ata: `User` / `Moderator` / `Admin` (Owner atanamaz) |
+| DELETE | `/api/admin/topics/{id}` ⚙️ | Konuyu sahiplikten bağımsız sil (moderasyon) |
+| PUT | `/api/admin/topics/{id}` ⚙️👤 | Konuyu sahiplikten bağımsız düzenle (moderasyon) |
+| DELETE | `/api/admin/comments/{id}` ⚙️ | Yorumu sahiplikten bağımsız sil (moderasyon) |
+| PUT | `/api/admin/comments/{id}` ⚙️👤 | Yorumu sahiplikten bağımsız düzenle (moderasyon) |
+| GET | `/api/admin/reports?status=&page=&pageSize=` ⚙️ | Şikayet kuyruğu (bekleyenler önce), hedef önizlemesi dahil |
+| PUT | `/api/admin/reports/{id}/status` ⚙️ | Durum güncelle: `Pending`/`Reviewing`/`Resolved`/`Dismissed` (`{ status, resolutionNote? }`) |
+
+Bir Admin'in yetkisi kötüye kullanılırsa çözüm önce Owner'ın onu
+`User`/`Moderator`'a indirmesi, sonra gerekirse banlanmasıdır — Admin/Owner
+hesapları doğrudan banlanamaz.
 
 Arama terimi en az 2 karakter olmalı, `limit` en fazla 50. Yanıt gövdesi
 `{ query, topics, comments, users, totals }` şeklinde gruplanmış döner.
@@ -124,6 +147,37 @@ Arayüzde `index.html?q=aranan` ile doğrudan sonuç sayfasına bağlanılabilir
 Dosya yükleme: yalnızca JPG/PNG/GIF/WEBP, dosya başına 5 MB, konu başına en
 fazla 5 dosya. Dosyalar rastgele adla kaydedilir, kullanıcının verdiği ad
 kullanılmaz.
+
+## Yönetim Paneli (Arayüz)
+
+`wwwroot/panel/` altında, ayrı bir uygulama/deploy DEĞİL — aynı statik dosya
+sunumunun bir alt yolu. Sayfalar:
+
+| Sayfa | İçerik |
+|---|---|
+| `panel/index.html` | Dashboard — toplam kullanıcı/konu/yorum, banlı sayısı, bekleyen şikayet, son 24s yeni üye/konu, kategoriye göre dağılım |
+| `panel/users.html` | Kullanıcı arama + sayfalama, ban/unban, rol değiştirme (yalnızca Owner'a görünür — diğerlerinde rozet olarak gösterilir) |
+| `panel/content.html` | Tüm konuların listesi (kategori filtresi), doğrudan silme; düzenlemek için konuya girilir |
+
+**Erişim modeli — iki katman:**
+1. **Gerçek yetki**: her `/api/admin/*` isteği sunucuda `[Authorize(Roles=...)]`
+   ile korunur (bkz. yukarıdaki tablo). Bu, panelin tek gerçek güvenlik sınırı.
+2. **Arayüz kapısı**: her panel sayfası `requireStaff()` (bkz. `js/app.js`) ile
+   açılır — girişli değilse veya rolü Moderator'ın altındaysa siteye geri
+   yollar. Bu yalnızca kullanıcı deneyimi içindir; panel HTML/JS dosyaları
+   herkese açık statik dosyalardır (URL'i bilen indirebilir), gerçek veriye
+   erişim yine token+rol kontrolünden geçer.
+
+Konu/yorum **düzenleme** moderasyonu ayrı bir ekran yerine `topic-detail.html`
+üzerinden yapılır: sahip olmayan bir Admin/Owner konuyu görüntülediğinde
+Düzenle/Sil butonları otomatik görünür (Moderator yalnızca Sil görür,
+matrise uygun), sunucu tarafı `/api/topics/{id}` yerine `/api/admin/topics/{id}`
+çağrılır. Ana site header'ında "Panel" linki yalnızca Moderator+ rolündeki
+oturumlarda görünür.
+
+Henüz yok (D3/D4'e bırakıldı): şikayet kuyruğu arayüzü, rozet/tag yönetimi,
+kategori CRUD arayüzü, denetim kaydı (audit log), site ayarları ekranı,
+subdomain + reverse-proxy şifresi (bilerek "yayına çıkış" partisine ertelendi).
 
 ## Veritabanı
 
@@ -167,16 +221,19 @@ dotnet ef migrations add DegisiklikAdi --project ForumApi
   **Ters vekil arkasına konursa** `ForwardedHeaders` eklenmeli, yoksa tüm
   istekler tek IP'den geliyormuş gibi görünür. Test ortamında
   (`ASPNETCORE_ENVIRONMENT=Testing`) devre dışı bırakılır.
-- Rol sistemi (`User` / `Moderator` / `Admin`) ve ban (`IsBanned`, `BanReason`)
-  veritabanında tutulur, rol JWT'ye claim olarak gömülür. Banlanan kullanıcı
-  hem girişte hem de **mevcut token'ıyla** anında reddedilir — ban, token'ın
-  12 saatlik ömrü dolana kadar beklemez (bkz. `Program.cs` içindeki
+- Rol sistemi (`User` / `Moderator` / `Admin` / `Owner`) ve ban (`IsBanned`,
+  `BanReason`) veritabanında tutulur, rol JWT'ye claim olarak gömülür. Banlanan
+  kullanıcı hem girişte hem de **mevcut token'ıyla** anında reddedilir — ban,
+  token'ın 12 saatlik ömrü dolana kadar beklemez (bkz. `Program.cs` içindeki
   kimlik doğrulama sonrası middleware).
-- Admin rolündeki bir hesap banlanamaz (kilitlenme riskine karşı); kimse
-  kendini banlayamaz veya kendi rolünü değiştiremez.
+- Admin/Owner rolündeki bir hesap banlanamaz (kilitlenme riskine karşı); kimse
+  kendini banlayamaz. Rol değişikliği yalnızca Owner'a açık — Admin bile rol
+  atayamaz/azledemez.
 
 Henüz yapılmadı: e-posta doğrulama, admin paneli arayüzü (uçlar hazır, arayüz
-yok), token iptali (logout sunucuda değil yalnızca istemcide).
+yok), rozet/tag sisteminin veritabanına taşınması (şu an kod içinde sabit,
+bkz. `wwwroot/js/app.js` `USER_TIERS`), denetim kaydı (audit log), token
+iptali (logout sunucuda değil yalnızca istemcide).
 
 ## Testler
 
@@ -189,8 +246,13 @@ izole, bellek-içi bir SQLite veritabanı kurar (gerçek `forum.db`'ye dokunmaz)
 Kapsam: kayıt/giriş, sahiplik (başkasının konusunu/yorumunu düzenleyememe),
 beğeni toggle'ı ve unique index, arama (konu/yorum/kullanıcı), dosya yükleme
 doğrulaması (uzantı/boyut/içerik türü uyuşmazlığı, `.svg` reddi), rol/ban
-(yetkisiz erişim, ban→giriş reddi, ban→mevcut token reddi, moderatörün rol
-değiştirememesi, Admin'in banlanamaması).
+(yetkisiz erişim, ban→giriş reddi, ban→mevcut token reddi, Admin'in rol
+değiştirememesi, yalnızca Owner'ın değiştirebilmesi, Owner'ın Owner atayamaması/
+başka Owner'ı değiştirememesi, Admin/Owner'ın banlanamaması, Admin'in
+başkasının konusunu düzenleyebilmesi ama Moderator'ın düzenleyememesi,
+dashboard istatistik ucunun rol koruması),
+şikayet sistemi (oluşturma, tekrar şikayeti reddetme, moderatörün listeleyip
+çözümleyebilmesi, sıradan kullanıcının listeyi görememesi).
 
 ## Geçmiş
 

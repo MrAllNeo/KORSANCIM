@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel — KORSANCIM</title>
+    <link rel="icon" type="image/svg+xml" href="../static/favicon.svg">
+    <link rel="stylesheet" href="../css/tailwind.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../js/app.js"></script>
+    <script src="panel.js"></script>
+</head>
+
+<body class="bg-base text-ink font-sans">
+
+    <div id="panel-header"></div>
+
+    <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+
+        <div>
+            <h1 class="text-lg font-bold text-ink mb-1">Genel Bakış</h1>
+            <p class="hint">Forumun anlık durumu.</p>
+        </div>
+
+        <div id="stat-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div class="card p-8 text-center col-span-full">
+                <div class="skeleton h-4 w-32 mx-auto"></div>
+            </div>
+        </div>
+
+        <div class="card p-5">
+            <h2 class="text-sm font-bold text-ink mb-3">Kategoriye göre konu dağılımı</h2>
+            <div id="category-breakdown" class="space-y-3"></div>
+        </div>
+    </main>
+
+    <script>
+        function statTile(icon, label, value, accentClass = '') {
+            return `
+                <div class="card p-4">
+                    <div class="flex items-center gap-2 text-ink-faint mb-2">
+                        <i data-lucide="${icon}" class="w-4 h-4"></i>
+                        <span class="text-xs">${label}</span>
+                    </div>
+                    <p class="text-2xl font-bold ${accentClass}">${value}</p>
+                </div>`;
+        }
+
+        async function loadStats() {
+            const res = await apiFetch('/api/admin/stats');
+
+            if (!res.ok) {
+                document.getElementById('stat-grid').innerHTML =
+                    `<div class="card p-8 text-center col-span-full"><p class="hint">İstatistikler yüklenemedi.</p></div>`;
+                return;
+            }
+
+            const s = await res.json();
+
+            document.getElementById('stat-grid').innerHTML = [
+                statTile('users', 'Toplam Kullanıcı', s.totalUsers),
+                statTile('user-x', 'Banlı Kullanıcı', s.bannedUsers, s.bannedUsers > 0 ? 'text-bad' : ''),
+                statTile('file-text', 'Toplam Konu', s.totalTopics),
+                statTile('message-square', 'Toplam Yorum', s.totalComments),
+                statTile('flag', 'Bekleyen Şikayet', s.pendingReports, s.pendingReports > 0 ? 'text-warn' : ''),
+                statTile('trending-up', 'Son 24s Yeni Üye', s.newUsersLast24h),
+                statTile('sparkles', 'Son 24s Yeni Konu', s.newTopicsLast24h)
+            ].join('');
+
+            const maxCount = Math.max(1, ...s.topicsByCategory.map(c => c.count));
+            document.getElementById('category-breakdown').innerHTML = s.topicsByCategory.length
+                ? s.topicsByCategory.map(c => `
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-ink-soft">${escapeHtml(c.name)}</span>
+                            <span class="hint">${c.count}</span>
+                        </div>
+                        <div class="h-1.5 rounded-full bg-sunken overflow-hidden">
+                            <div class="h-full bg-accent" style="width:${(c.count / maxCount) * 100}%"></div>
+                        </div>
+                    </div>`).join('')
+                : `<p class="hint">Henüz kategori yok.</p>`;
+
+            lucide.createIcons();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!requireStaff()) return;
+            renderPanelNav('dashboard');
+            loadStats();
+        });
+    </script>
+</body>
+
+</html>
