@@ -163,7 +163,7 @@
 
                 const data = await res.json();
                 if (res.ok) {
-                    showAlert('Kayıt başarılı! Şimdi giriş yapabilirsin.', true);
+                    showAlert(data.message || 'Kayıt başarılı! Şimdi giriş yapabilirsin.', true);
                     switchTab('login');
                 } else {
                     showAlert(data.error || 'Kayıt olunamadı.');

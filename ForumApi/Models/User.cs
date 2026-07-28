@@ -29,6 +29,13 @@ namespace ForumApi.Models
         public int? BadgeId { get; set; }
         public Badge? Badge { get; set; }
 
+        // E-posta doğrulama — doğrulanana kadar konu/yorum yazılamaz (bkz.
+        // TopicsController/CommentController). Token tek kullanımlık, süresi
+        // dolunca ResendVerification ile yenilenir.
+        public bool IsEmailVerified { get; set; } = false;
+        public string? EmailVerificationToken { get; set; }
+        public DateTime? EmailVerificationTokenExpiresAt { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hesap Ayarları — KORSANCIM</title>
+    <link rel="icon" type="image/svg+xml" href="static/favicon.svg">
+    <link rel="stylesheet" href="css/tailwind.css">
+    <link rel="stylesheet" href="css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/app.js"></script>
+</head>
+
+<body class="bg-base text-ink font-sans">
+
+    <div id="site-header"></div>
+
+    <main class="max-w-lg mx-auto px-4 py-6 space-y-4">
+
+        <div>
+            <h1 class="text-lg font-bold text-ink mb-1">Hesap Ayarları</h1>
+            <p class="hint">Kullanıcı adı, e-posta, şifre ve gizlilik ayarların. Profil
+                biyografi/avatar için <a href="profile.html" class="hover:text-ink-soft transition underline">profiline</a> bak.</p>
+        </div>
+
+        <!-- KULLANICI ADI -->
+        <form id="username-form" class="card p-5 space-y-3">
+            <h2 class="text-sm font-bold text-ink">Kullanıcı adı</h2>
+            <div>
+                <label class="label" for="username-new">Yeni kullanıcı adı</label>
+                <input id="username-new" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9_.\-]+" class="input">
+            </div>
+            <div>
+                <label class="label" for="username-password">Şifreniz</label>
+                <input type="password" id="username-password" required autocomplete="current-password" class="input">
+            </div>
+            <div id="username-alert" class="hidden alert"></div>
+            <div class="flex justify-end">
+                <button type="submit" class="btn btn-primary">Kaydet</button>
+            </div>
+        </form>
+
+        <!-- E-POSTA -->
+        <form id="email-form" class="card p-5 space-y-3">
+            <h2 class="text-sm font-bold text-ink">E-posta</h2>
+            <p class="hint">Mevcut: <span id="email-current" class="text-ink-soft">…</span></p>
+            <div>
+                <label class="label" for="email-new">Yeni e-posta</label>
+                <input type="email" id="email-new" required class="input">
+            </div>
+            <div>
+                <label class="label" for="email-password">Şifreniz</label>
+                <input type="password" id="email-password" required autocomplete="current-password" class="input">
+            </div>
+            <div id="email-alert" class="hidden alert"></div>
+            <div class="flex justify-end">
+                <button type="submit" class="btn btn-primary">Kaydet</button>
+            </div>
+        </form>
+
+        <!-- ŞİFRE -->
+        <form id="password-form" class="card p-5 space-y-3">
+            <h2 class="text-sm font-bold text-ink">Şifre</h2>
+            <div>
+                <label class="label" for="password-current">Mevcut şifre</label>
+                <input type="password" id="password-current" required autocomplete="current-password" class="input">
+            </div>
+            <div>
+                <label class="label" for="password-new">Yeni şifre</label>
+                <input type="password" id="password-new" required minlength="8" autocomplete="new-password" class="input">
+                <p class="hint mt-1.5">En az 8 karakter</p>
+            </div>
+            <div id="password-alert" class="hidden alert"></div>
+            <div class="flex justify-end">
+                <button type="submit" class="btn btn-primary">Kaydet</button>
+            </div>
+        </form>
+
+        <!-- GİZLİLİK -->
+        <div class="card p-5 space-y-3">
+            <h2 class="text-sm font-bold text-ink">Gizlilik</h2>
+            <label class="flex items-center justify-between gap-3 cursor-pointer">
+                <span>
+                    <span class="block text-sm text-ink">Aktivitemi profilimde göster</span>
+                    <span class="hint block mt-0.5">Kapatırsan konu/yanıtların yalnızca sana görünür, başkaları göremez.</span>
+                </span>
+                <input type="checkbox" id="privacy-show-activity" class="w-4 h-4 shrink-0">
+            </label>
+            <div id="privacy-alert" class="hidden alert"></div>
+        </div>
+
+        <!-- TEHLİKELİ BÖLGE -->
+        <div class="card p-5 space-y-3 border-bad/30">
+            <h2 class="text-sm font-bold text-bad">Tehlikeli Bölge</h2>
+            <p class="hint">Hesabını sildiğinde tüm konuların, yanıtların ve profilin kalıcı olarak
+                silinir. Bu işlem geri alınamaz.</p>
+            <div>
+                <label class="label" for="delete-password">Şifreniz</label>
+                <input type="password" id="delete-password" autocomplete="current-password" class="input">
+            </div>
+            <div id="delete-alert" class="hidden alert"></div>
+            <div class="flex justify-end">
+                <button id="delete-btn" onclick="deleteAccount()" class="btn btn-danger">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> Hesabı Kalıcı Olarak Sil
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function showFormAlert(id, message, ok = false) {
+            const box = document.getElementById(id);
+            box.textContent = message;
+            box.className = `alert ${ok ? 'alert-ok' : 'alert-bad'}`;
+        }
+
+        async function loadAccount() {
+            const session = getSession();
+            document.getElementById('username-new').value = session.username;
+            document.getElementById('email-current').textContent = session.email || '—';
+
+            const res = await apiFetch(`/api/users/profile/${encodeURIComponent(session.username)}`);
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('privacy-show-activity').checked = data.showActivity !== false;
+            }
+        }
+
+        document.getElementById('username-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type=submit]');
+            btn.disabled = true;
+
+            const res = await apiFetchJson('/api/account/username', 'PUT', {
+                newUsername: document.getElementById('username-new').value,
+                currentPassword: document.getElementById('username-password').value
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                updateSessionField({
+                    username: data.username,
+                    token: data.token,
+                    expiresAt: Date.now() + (data.expiresInHours || 12) * 3600 * 1000
+                });
+                document.getElementById('username-password').value = '';
+                showFormAlert('username-alert', data.message, true);
+                renderHeader({ active: 'settings' });
+            } else {
+                showFormAlert('username-alert', await readError(res, 'Kullanıcı adı güncellenemedi.'));
+            }
+            btn.disabled = false;
+        });
+
+        document.getElementById('email-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type=submit]');
+            btn.disabled = true;
+
+            const res = await apiFetchJson('/api/account/email', 'PUT', {
+                newEmail: document.getElementById('email-new').value,
+                currentPassword: document.getElementById('email-password').value
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                updateSessionField({ email: data.email, emailVerified: data.emailVerified });
+                document.getElementById('email-password').value = '';
+                document.getElementById('email-new').value = '';
+                document.getElementById('email-current').textContent = data.email;
+                showFormAlert('email-alert', data.message, true);
+                checkEmailVerification();
+            } else {
+                showFormAlert('email-alert', await readError(res, 'E-posta güncellenemedi.'));
+            }
+            btn.disabled = false;
+        });
+
+        document.getElementById('password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type=submit]');
+            btn.disabled = true;
+
+            const res = await apiFetchJson('/api/account/password', 'PUT', {
+                currentPassword: document.getElementById('password-current').value,
+                newPassword: document.getElementById('password-new').value
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('password-form').reset();
+                showFormAlert('password-alert', data.message, true);
+            } else {
+                showFormAlert('password-alert', await readError(res, 'Şifre güncellenemedi.'));
+            }
+            btn.disabled = false;
+        });
+
+        document.getElementById('privacy-show-activity').addEventListener('change', async (e) => {
+            const res = await apiFetchJson('/api/account/privacy', 'PUT', { showActivity: e.target.checked });
+            if (res.ok) {
+                showFormAlert('privacy-alert', 'Gizlilik ayarı güncellendi.', true);
+            } else {
+                e.target.checked = !e.target.checked;
+                showFormAlert('privacy-alert', await readError(res, 'Ayar güncellenemedi.'));
+            }
+        });
+
+        async function deleteAccount() {
+            const password = document.getElementById('delete-password').value;
+            if (!password) {
+                showFormAlert('delete-alert', 'Şifreni girmelisin.');
+                return;
+            }
+            if (!confirm('Hesabın, tüm konuların ve yanıtların kalıcı olarak silinecek. Emin misin?')) return;
+
+            const btn = document.getElementById('delete-btn');
+            btn.disabled = true;
+
+            const res = await apiFetch('/api/account', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ currentPassword: password })
+            });
+
+            if (res.ok) {
+                logout();
+            } else {
+                showFormAlert('delete-alert', await readError(res, 'Hesap silinemedi.'));
+                btn.disabled = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!requireLogin()) return;
+            renderHeader({ active: 'settings' });
+            await loadAccount();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+
+</html>

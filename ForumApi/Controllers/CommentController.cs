@@ -72,6 +72,16 @@ namespace ForumApi.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateComment([FromBody] CreateCommentDto dto)
         {
+            var isVerified = await _context.Users
+                .Where(u => u.Id == CurrentUserId)
+                .Select(u => u.IsEmailVerified)
+                .FirstOrDefaultAsync();
+
+            if (!isVerified)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = "Yorum yazabilmek için e-posta adresini doğrulamalısın." });
+            }
+
             if (!await _context.Topics.AnyAsync(t => t.Id == dto.TopicId))
             {
                 return NotFound(new { error = "Konu bulunamadı." });

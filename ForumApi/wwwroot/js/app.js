@@ -155,6 +155,7 @@ function saveSession(data) {
         avatarUrl: data.avatarUrl || null,
         role: data.role || 'User',
         badge: data.badge || null,
+        emailVerified: data.emailVerified !== false,
         expiresAt: Date.now() + (data.expiresInHours || 12) * 3600 * 1000
     }));
 }
@@ -166,6 +167,16 @@ function updateSessionAvatar(avatarUrl) {
     const session = getSession();
     if (!session) return;
     session.avatarUrl = avatarUrl || null;
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+// Hesap ayarlarında kullanıcı adı/e-posta/token değiştiğinde oturumu
+// sunucudan gelen güncel değerlerle senkronlar — yoksa bir sonraki girişe
+// kadar eski değerler (ve kullanıcı adı değiştiyse geçersiz token) kalır.
+function updateSessionField(patch) {
+    const session = getSession();
+    if (!session) return;
+    Object.assign(session, patch);
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
@@ -350,9 +361,87 @@ function categoryName(id) {
 // ── Ortak Başlık ────────────────────────────────────────────
 // Her sayfa <div id="site-header"></div> koyar, gerisini burası halleder.
 // Böylece profil sekmesi tüm sayfalarda tutarlı biçimde bulunur.
+// Bakım modunda personel dışındaki herkes tam sayfa bir mesajla karşılanır;
+// personel çalışmaya devam edebilir (bkz. Program.cs bakım middleware'i).
+// Duyuru şeridi bakım modundan bağımsız, her sayfada gösterilir.
+async function checkSiteStatus() {
+    let settings;
+    try {
+        const res = await fetch('/api/settings');
+        if (!res.ok) return;
+        settings = await res.json();
+    } catch {
+        return;
+    }
+
+    if (settings.maintenanceMode && !isModerator()) {
+        document.body.innerHTML = `
+            <div class="min-h-screen grid place-items-center p-6">
+                <div class="card p-8 max-w-sm text-center space-y-3">
+                    <i data-lucide="wrench" class="w-8 h-8 mx-auto text-accent-soft"></i>
+                    <h1 class="text-lg font-bold text-ink">Site bakımda</h1>
+                    <p class="hint">Kısa bir bakım çalışması sürüyor, lütfen daha sonra tekrar deneyin.</p>
+                </div>
+            </div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        return true;
+    }
+
+    if (settings.announcementText) {
+        const existing = document.getElementById('announcement-banner');
+        if (!existing) {
+            const banner = document.createElement('div');
+            banner.id = 'announcement-banner';
+            banner.className = 'bg-accent-dim text-ink text-[13px] text-center px-4 py-2 border-b border-accent/30';
+            banner.textContent = settings.announcementText;
+            document.body.prepend(banner);
+        }
+    }
+
+    return false;
+}
+
+// Doğrulanmamış oturumda her sayfada üstte hatırlatma şeridi gösterir —
+// konu/yorum yazma sunucu tarafında zaten engelleniyor (bkz.
+// TopicsController/CommentController), bu yalnızca kullanıcıya nedenini
+// ve "tekrar gönder" seçeneğini gösterir.
+function checkEmailVerification() {
+    const session = getSession();
+    const existing = document.getElementById('verify-email-banner');
+
+    if (!session || session.emailVerified) {
+        existing?.remove();
+        return;
+    }
+
+    if (existing) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'verify-email-banner';
+    banner.className = 'bg-warn/15 border-b border-warn/30 text-[13px] text-center px-4 py-2 flex items-center justify-center gap-2 flex-wrap';
+    banner.innerHTML = `
+        <span>E-posta adresini doğrulamadan konu/yorum yazamazsın.</span>
+        <button onclick="resendVerificationEmail(this)" class="btn btn-quiet btn-sm">Tekrar gönder</button>`;
+    document.body.prepend(banner);
+}
+
+async function resendVerificationEmail(btn) {
+    btn.disabled = true;
+    const res = await apiFetch('/api/auth/resend-verification', { method: 'POST' });
+    if (res.ok) {
+        btn.textContent = 'Gönderildi ✓';
+    } else {
+        btn.disabled = false;
+        alert(await readError(res, 'Gönderilemedi, daha sonra tekrar dene.'));
+    }
+}
+
 function renderHeader(options = {}) {
     const mount = document.getElementById('site-header');
     if (!mount) return;
+
+    checkSiteStatus();
+    checkEmailVerification();
 
     const { active = '', showNewTopic = true } = options;
     const session = getSession();
@@ -378,6 +467,10 @@ function renderHeader(options = {}) {
                    <span class="hidden sm:flex items-center gap-1.5 min-w-0">
                        ${renderUserName(username, badge, 'text-[13px] truncate max-w-[9ch]')}${renderBadge(badge)}
                    </span>
+               </a>
+               <a href="account-settings.html" class="btn btn-quiet ${active === 'settings' ? 'text-ink' : ''}"
+                  title="Hesap Ayarları" aria-label="Hesap Ayarları">
+                   <i data-lucide="settings" class="w-4 h-4"></i>
                </a>
                <button onclick="logout()" class="btn btn-quiet btn-danger" title="Çıkış Yap" aria-label="Çıkış Yap">
                    <i data-lucide="log-out" class="w-4 h-4"></i>

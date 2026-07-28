@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Ayarları — Panel — KORSANCIM</title>
+    <link rel="icon" type="image/svg+xml" href="../static/favicon.svg">
+    <link rel="stylesheet" href="../css/tailwind.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../js/app.js"></script>
+    <script src="panel.js"></script>
+</head>
+
+<body class="bg-base text-ink font-sans">
+
+    <div id="panel-header"></div>
+
+    <main class="max-w-lg mx-auto px-4 py-6 space-y-4">
+
+        <div>
+            <h1 class="text-lg font-bold text-ink mb-1">Site Ayarları</h1>
+            <p class="hint">Bu ayarlar tüm siteyi etkiler — yalnızca Owner değiştirebilir.</p>
+        </div>
+
+        <form id="settings-form" class="card p-5 space-y-4">
+            <label class="flex items-center justify-between gap-3">
+                <span>
+                    <span class="block text-sm text-ink">Kayıtlar açık</span>
+                    <span class="hint">Kapatılırsa yeni hesap oluşturma engellenir.</span>
+                </span>
+                <input type="checkbox" id="set-registration-open" class="w-5 h-5">
+            </label>
+
+            <label class="flex items-center justify-between gap-3 pt-4 divider">
+                <span>
+                    <span class="block text-sm text-ink">Bakım modu</span>
+                    <span class="hint">Açılırsa personel dışında herkes bakım sayfası görür.</span>
+                </span>
+                <input type="checkbox" id="set-maintenance-mode" class="w-5 h-5">
+            </label>
+
+            <div class="pt-4 divider">
+                <label class="label" for="set-announcement">Duyuru şeridi (isteğe bağlı)</label>
+                <textarea id="set-announcement" rows="2" maxlength="500" class="input" placeholder="Boş bırakılırsa duyuru gösterilmez…"></textarea>
+            </div>
+
+            <div id="settings-alert" class="hidden alert"></div>
+
+            <div class="flex justify-end">
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="check" class="w-4 h-4"></i> Kaydet
+                </button>
+            </div>
+        </form>
+    </main>
+
+    <script>
+        async function loadSettings() {
+            const res = await fetch('/api/settings');
+            if (!res.ok) return;
+            const settings = await res.json();
+
+            document.getElementById('set-registration-open').checked = settings.registrationOpen;
+            document.getElementById('set-maintenance-mode').checked = settings.maintenanceMode;
+            document.getElementById('set-announcement').value = settings.announcementText || '';
+        }
+
+        document.getElementById('settings-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const alertEl = document.getElementById('settings-alert');
+            alertEl.classList.add('hidden');
+
+            const body = {
+                registrationOpen: document.getElementById('set-registration-open').checked,
+                maintenanceMode: document.getElementById('set-maintenance-mode').checked,
+                announcementText: document.getElementById('set-announcement').value.trim() || null
+            };
+
+            const res = await apiFetchJson('/api/admin/settings', 'PUT', body);
+
+            alertEl.classList.remove('hidden', 'alert-ok', 'alert-bad');
+            if (res.ok) {
+                alertEl.classList.add('alert-ok');
+                alertEl.textContent = 'Ayarlar kaydedildi.';
+            } else {
+                alertEl.classList.add('alert-bad');
+                alertEl.textContent = await readError(res, 'Ayarlar kaydedilemedi.');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!requireStaff()) return;
+            if (!isOwner()) { window.location.href = 'index.html'; return; }
+            renderPanelNav('settings');
+            loadSettings();
+        });
+    </script>
+</body>
+
+</html>

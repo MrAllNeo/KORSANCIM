@@ -38,6 +38,8 @@ var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ForumApi";
 
 builder.Services.AddSingleton(new TokenService(jwtKey, jwtIssuer, jwtAudience));
 builder.Services.AddScoped<FileUploadService>();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<EmailService>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -93,6 +95,16 @@ builder.Services.AddRateLimiter(options =>
         RateLimitPartition.GetFixedWindowLimiter(ClientKey(context), _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(1)
+        }));
+
+    // Yönetim paneli — genel tavandan (120/dk) daha sıkı. Amaç normal panel
+    // kullanımını yavaşlatmak değil, ele geçirilmiş bir admin oturumunun
+    // otomasyonla (ör. tüm kullanıcıları taraması) hızını sınırlamak.
+    options.AddPolicy("admin", context =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(context), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 100,
             Window = TimeSpan.FromMinutes(1)
         }));
 
@@ -195,6 +207,44 @@ app.Use(async (context, next) =>
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 context.Response.ContentType = "application/json";
                 await context.Response.WriteAsJsonAsync(new { error = "Hesabınız askıya alınmış." });
+                return;
+            }
+        }
+    }
+
+    await next();
+});
+
+// Bakım modu: sıradan kullanıcılar ve anonim ziyaretçiler /api/* üzerinde 503
+// alır, personel (Moderator+) çalışmaya devam edebilir — bakım genelde tam da
+// personelin arka planda hazırlık yapabildiği pencere olmalı. Arayüz durumu
+// /api/settings'ten okuyup tam sayfa bir bakım mesajı gösterir. /api/settings
+// ve /api/auth/login bilerek muaf: biri banner'ı göstermek, diğeri personelin
+// bakım modunda giriş yapabilmesi gerektiği için.
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path;
+    var isExempt = path.StartsWithSegments("/api/settings") || path.StartsWithSegments("/api/auth/login");
+
+    if (path.StartsWithSegments("/api") && !isExempt)
+    {
+        var isStaff = context.User.IsInRole(Roles.Moderator) ||
+                      context.User.IsInRole(Roles.Admin) ||
+                      context.User.IsInRole(Roles.Owner);
+
+        if (!isStaff)
+        {
+            var db = context.RequestServices.GetRequiredService<AppDbContext>();
+            var maintenance = await db.SiteSettings
+                .Where(s => s.Id == 1)
+                .Select(s => s.MaintenanceMode)
+                .FirstOrDefaultAsync();
+
+            if (maintenance)
+            {
+                context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsJsonAsync(new { error = "Site şu anda bakımda. Lütfen daha sonra tekrar deneyin." });
                 return;
             }
         }

@@ -11,6 +11,15 @@ namespace ForumApi.Services
     {
         public const int ExpiryHours = 12;
 
+        // Admin/Owner token'ı kısa ömürlü — çalınmış bir yüksek yetkili
+        // token'ın kullanılabilir penceresi dar tutulur. Moderator'ın yetkisi
+        // daha sınırlı (ban/sil, rol/rozet/kategori değiştiremez) olduğu için
+        // normal süreyi korur.
+        public const int PrivilegedExpiryHours = 4;
+
+        public static int ExpiryHoursFor(string role) =>
+            (role == Roles.Admin || role == Roles.Owner) ? PrivilegedExpiryHours : ExpiryHours;
+
         private readonly SymmetricSecurityKey _key;
         private readonly string _issuer;
         private readonly string _audience;
@@ -71,7 +80,7 @@ namespace ForumApi.Services
                 issuer: _issuer,
                 audience: _audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(ExpiryHours),
+                expires: DateTime.UtcNow.AddHours(ExpiryHoursFor(user.Role)),
                 signingCredentials: new SigningCredentials(_key, SecurityAlgorithms.HmacSha256)
             );
 

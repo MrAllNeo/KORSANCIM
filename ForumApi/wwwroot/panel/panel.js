@@ -23,6 +23,8 @@ function renderPanelNav(active) {
                 ${link('reports.html', 'flag', 'Şikayetler', 'reports')}
                 ${isAdmin() ? link('badges.html', 'award', 'Rozetler', 'badges') : ''}
                 ${isAdmin() ? link('categories.html', 'folder-tree', 'Kategoriler', 'categories') : ''}
+                ${isOwner() ? link('audit-log.html', 'scroll-text', 'Denetim', 'audit-log') : ''}
+                ${isOwner() ? link('settings.html', 'settings', 'Ayarlar', 'settings') : ''}
                 <a href="../index.html" class="btn btn-quiet btn-sm ml-auto">
                     <i data-lucide="arrow-left" class="w-4 h-4"></i>
                     <span class="hidden sm:inline">Siteye Dön</span>

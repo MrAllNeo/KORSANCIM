@@ -6,7 +6,9 @@ using ForumApi.Data;
 using ForumApi.Models;
 using ForumApi.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace ForumApi.Controllers
@@ -22,6 +24,7 @@ namespace ForumApi.Controllers
     [ApiController]
     [Route("api/admin")]
     [Authorize(Roles = Roles.ModAndAbove)]
+    [EnableRateLimiting("admin")]
     public class AdminController : ControllerBase
     {
         private const int DefaultPageSize = 20;
@@ -29,14 +32,33 @@ namespace ForumApi.Controllers
 
         private readonly AppDbContext _context;
         private readonly FileUploadService _uploads;
+        private readonly IPasswordHasher<User> _passwordHasher;
 
-        public AdminController(AppDbContext context, FileUploadService uploads)
+        public AdminController(AppDbContext context, FileUploadService uploads, IPasswordHasher<User> passwordHasher)
         {
             _context = context;
             _uploads = uploads;
+            _passwordHasher = passwordHasher;
         }
 
         private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        private string CurrentUsername => User.FindFirstValue(ClaimTypes.Name) ?? "(bilinmiyor)";
+
+        // Denetim kaydına tek satır ekler — her mutasyonun sonunda çağrılır.
+        private async Task LogAction(string action, string? targetType = null, int? targetId = null, string? details = null)
+        {
+            _context.AuditLogs.Add(new AuditLog
+            {
+                ActorUserId = CurrentUserId,
+                ActorUsername = CurrentUsername,
+                Action = action,
+                TargetType = targetType,
+                TargetId = targetId,
+                Details = details,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+        }
 
         public class BanUserDto
         {
@@ -48,6 +70,11 @@ namespace ForumApi.Controllers
         {
             [Required(ErrorMessage = "Rol zorunludur.")]
             public string Role { get; set; } = string.Empty;
+
+            // Rol atama en yüksek etkili işlem (yetki yükseltme); Owner'ın
+            // kendi şifresiyle yeniden onay vermesi gerekir.
+            [Required(ErrorMessage = "Onay için şifreniz gereklidir.")]
+            public string CurrentPassword { get; set; } = string.Empty;
         }
 
         public class ModerateEditTopicDto
@@ -115,6 +142,15 @@ namespace ForumApi.Controllers
             public string Icon { get; set; } = "hash";
 
             public int DisplayOrder { get; set; } = 0;
+        }
+
+        public class SiteSettingsDto
+        {
+            public bool RegistrationOpen { get; set; } = true;
+            public bool MaintenanceMode { get; set; } = false;
+
+            [StringLength(500, ErrorMessage = "Duyuru en fazla 500 karakter olabilir.")]
+            public string? AnnouncementText { get; set; }
         }
 
         // GET: api/admin/stats — panel dashboard'u için toplu sayımlar.
@@ -298,6 +334,7 @@ namespace ForumApi.Controllers
             target.IsBanned = true;
             target.BanReason = dto.Reason;
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.BanUser, "User", target.Id, $"{target.Username}: {dto.Reason}");
 
             return Ok(new { message = "Kullanıcı banlandı.", userId = target.Id });
         }
@@ -312,6 +349,7 @@ namespace ForumApi.Controllers
             target.IsBanned = false;
             target.BanReason = null;
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.UnbanUser, "User", target.Id, target.Username);
 
             return Ok(new { message = "Ban kaldırıldı.", userId = target.Id });
         }
@@ -327,6 +365,13 @@ namespace ForumApi.Controllers
                 return BadRequest(new { error = $"Geçersiz rol. Atanabilir roller: {string.Join(", ", Roles.Assignable)}" });
             }
 
+            var actingOwner = await _context.Users.FindAsync(CurrentUserId);
+            if (actingOwner == null ||
+                _passwordHasher.VerifyHashedPassword(actingOwner, actingOwner.PasswordHash, dto.CurrentPassword) == PasswordVerificationResult.Failed)
+            {
+                return StatusCode(StatusCodes.Status401Unauthorized, new { error = "Şifre doğrulanamadı." });
+            }
+
             var target = await _context.Users.FindAsync(id);
             if (target == null) return NotFound(new { error = "Kullanıcı bulunamadı." });
 
@@ -340,8 +385,10 @@ namespace ForumApi.Controllers
                 return StatusCode(StatusCodes.Status403Forbidden, new { error = "Owner rolündeki bir kullanıcının rolü bu uçtan değiştirilemez." });
             }
 
+            var previousRole = target.Role;
             target.Role = dto.Role;
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.ChangeRole, "User", target.Id, $"{target.Username}: {previousRole} -> {dto.Role}");
 
             return Ok(new { message = "Rol güncellendi.", userId = target.Id, role = target.Role });
         }
@@ -357,10 +404,13 @@ namespace ForumApi.Controllers
                 ? new List<string>()
                 : JsonSerializer.Deserialize<List<string>>(topic.FileUrlsJson) ?? new List<string>();
 
+            var topicTitle = topic.Title;
+
             _context.Topics.Remove(topic);
             await _context.SaveChangesAsync();
 
             _uploads.DeleteAll(fileUrls);
+            await LogAction(AuditActions.DeleteTopic, "Topic", id, topicTitle);
 
             return Ok(new { message = "Konu moderasyon tarafından silindi." });
         }
@@ -385,6 +435,7 @@ namespace ForumApi.Controllers
             topic.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.EditTopic, "Topic", id, dto.Title);
 
             return Ok(new { message = "Konu moderasyon tarafından düzenlendi." });
         }
@@ -398,6 +449,7 @@ namespace ForumApi.Controllers
 
             _context.Comments.Remove(comment);
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.DeleteComment, "Comment", id);
 
             return Ok(new { message = "Yorum moderasyon tarafından silindi." });
         }
@@ -414,6 +466,7 @@ namespace ForumApi.Controllers
             comment.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.EditComment, "Comment", id);
 
             return Ok(new { message = "Yorum moderasyon tarafından düzenlendi." });
         }
@@ -517,6 +570,7 @@ namespace ForumApi.Controllers
             report.ResolvedAt = ReportStatus.IsTerminal(dto.Status) ? DateTime.UtcNow : null;
 
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.UpdateReportStatus, "Report", id, dto.Status);
 
             return Ok(new { message = "Şikayet güncellendi.", reportId = report.Id, status = report.Status });
         }
@@ -558,6 +612,7 @@ namespace ForumApi.Controllers
 
             _context.Badges.Add(badge);
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.CreateBadge, "Badge", badge.Id, badge.Name);
 
             return Ok(new { message = "Rozet oluşturuldu.", badgeId = badge.Id });
         }
@@ -581,6 +636,7 @@ namespace ForumApi.Controllers
             badge.Shine = dto.Shine;
 
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.UpdateBadge, "Badge", badge.Id, badge.Name);
 
             return Ok(new { message = "Rozet güncellendi." });
         }
@@ -593,8 +649,11 @@ namespace ForumApi.Controllers
             var badge = await _context.Badges.FindAsync(id);
             if (badge == null) return NotFound(new { error = "Rozet bulunamadı." });
 
+            var badgeName = badge.Name;
+
             _context.Badges.Remove(badge);
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.DeleteBadge, "Badge", id, badgeName);
 
             return Ok(new { message = "Rozet silindi." });
         }
@@ -615,6 +674,7 @@ namespace ForumApi.Controllers
 
             target.BadgeId = dto.BadgeId;
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.AssignBadge, "User", target.Id, $"{target.Username}: badgeId={dto.BadgeId?.ToString() ?? "null"}");
 
             return Ok(new { message = "Rozet güncellendi.", userId = target.Id, badgeId = target.BadgeId });
         }
@@ -642,6 +702,7 @@ namespace ForumApi.Controllers
 
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.CreateCategory, "Category", category.Id, category.Name);
 
             return Ok(new { message = "Kategori oluşturuldu.", categoryId = category.Id, slug = category.Slug });
         }
@@ -667,6 +728,7 @@ namespace ForumApi.Controllers
             category.DisplayOrder = dto.DisplayOrder;
 
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.UpdateCategory, "Category", category.Id, category.Name);
 
             return Ok(new { message = "Kategori güncellendi." });
         }
@@ -686,10 +748,77 @@ namespace ForumApi.Controllers
                 return BadRequest(new { error = $"Bu kategoride {topicCount} konu var. Önce konuları başka bir kategoriye taşıyın." });
             }
 
+            var categoryName = category.Name;
+
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
+            await LogAction(AuditActions.DeleteCategory, "Category", id, categoryName);
 
             return Ok(new { message = "Kategori silindi." });
+        }
+
+        // ── Denetim Kaydı ──────────────────────────────────────────
+        // Yalnızca okuma — kayıtlar hiçbir uçtan düzenlenemez/silinemez.
+        // Owner'a özel: "kim izliyor" sorusunun cevabını yalnızca en üst
+        // yetkili görmeli, aksi halde bir Admin kendi izini gizleyebilir.
+        [Authorize(Roles = Roles.Owner)]
+        [HttpGet("audit-logs")]
+        public async Task<IActionResult> GetAuditLogs([FromQuery] string? action, [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
+        {
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+
+            var query = _context.AuditLogs.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(action))
+            {
+                query = query.Where(a => a.Action == action);
+            }
+
+            var total = await query.CountAsync();
+
+            var logs = await query
+                .OrderByDescending(a => a.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.ActorUsername,
+                    a.Action,
+                    a.TargetType,
+                    a.TargetId,
+                    a.Details,
+                    a.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(new { items = logs, page, pageSize, total, totalPages = (int)Math.Ceiling(total / (double)pageSize) });
+        }
+
+        // ── Site Ayarları ────────────────────────────────────────────
+        // Okuma herkese açık (GET /api/settings, SettingsController), yazma
+        // yalnızca Owner — kayıt aç/kapa ve bakım modu site geneli etki eder.
+        [Authorize(Roles = Roles.Owner)]
+        [HttpPut("settings")]
+        public async Task<IActionResult> UpdateSettings([FromBody] SiteSettingsDto dto)
+        {
+            var settings = await _context.SiteSettings.FindAsync(1);
+            if (settings == null)
+            {
+                settings = new SiteSettings { Id = 1 };
+                _context.SiteSettings.Add(settings);
+            }
+
+            settings.RegistrationOpen = dto.RegistrationOpen;
+            settings.MaintenanceMode = dto.MaintenanceMode;
+            settings.AnnouncementText = string.IsNullOrWhiteSpace(dto.AnnouncementText) ? null : dto.AnnouncementText.Trim();
+
+            await _context.SaveChangesAsync();
+            await LogAction(AuditActions.UpdateSettings, null, null,
+                $"registrationOpen={settings.RegistrationOpen}, maintenanceMode={settings.MaintenanceMode}");
+
+            return Ok(new { message = "Ayarlar güncellendi." });
         }
 
         private static string Slugify(string input)

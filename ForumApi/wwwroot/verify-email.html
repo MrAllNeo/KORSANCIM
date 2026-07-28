@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-posta Doğrulama — KORSANCIM</title>
+    <link rel="icon" type="image/svg+xml" href="static/favicon.svg">
+    <link rel="stylesheet" href="css/tailwind.css">
+    <link rel="stylesheet" href="css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/app.js"></script>
+</head>
+
+<body class="bg-base text-ink font-sans min-h-screen grid place-items-center px-4">
+    <div class="card p-8 max-w-sm w-full text-center space-y-4">
+        <div id="verify-icon" class="w-12 h-12 mx-auto rounded-full bg-accent/15 border border-accent/30 grid place-items-center">
+            <i data-lucide="loader" class="w-6 h-6 text-accent-soft"></i>
+        </div>
+        <h1 id="verify-title" class="text-lg font-bold text-ink">Doğrulanıyor…</h1>
+        <p id="verify-message" class="text-sm text-ink-soft">Bir saniye lütfen.</p>
+        <a id="verify-action" href="auth.html" class="btn btn-primary hidden">
+            <i data-lucide="log-in" class="w-4 h-4"></i> Giriş yap
+        </a>
+    </div>
+
+    <script>
+        function showResult(ok, title, message) {
+            document.getElementById('verify-icon').innerHTML =
+                `<i data-lucide="${ok ? 'check' : 'x'}" class="w-6 h-6 ${ok ? 'text-ok' : 'text-bad'}"></i>`;
+            document.getElementById('verify-title').textContent = title;
+            document.getElementById('verify-message').textContent = message;
+            document.getElementById('verify-action').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        async function verify() {
+            const token = new URLSearchParams(window.location.search).get('token');
+
+            if (!token) {
+                showResult(false, 'Bağlantı geçersiz', 'Doğrulama token\'ı bulunamadı.');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/verify-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+
+                if (res.ok) {
+                    showResult(true, 'E-posta doğrulandı', 'Artık konu açabilir, yorum yazabilirsin. Giriş yapman yeterli.');
+                } else {
+                    const message = await readError(res, 'Doğrulama başarısız oldu.');
+                    showResult(false, 'Doğrulama başarısız', message);
+                }
+            } catch {
+                showResult(false, 'Bağlantı hatası', 'Sunucuya ulaşılamadı, daha sonra tekrar dene.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', verify);
+    </script>
+</body>
+
+</html>

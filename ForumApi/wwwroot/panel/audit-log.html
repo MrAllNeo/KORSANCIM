@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Denetim Kaydı — Panel — KORSANCIM</title>
+    <link rel="icon" type="image/svg+xml" href="../static/favicon.svg">
+    <link rel="stylesheet" href="../css/tailwind.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../js/app.js"></script>
+    <script src="panel.js"></script>
+</head>
+
+<body class="bg-base text-ink font-sans">
+
+    <div id="panel-header"></div>
+
+    <main class="max-w-3xl mx-auto px-4 py-6 space-y-4">
+
+        <div>
+            <h1 class="text-lg font-bold text-ink mb-1">Denetim Kaydı</h1>
+            <p class="hint">Yönetim panelinde yapılan her işlem burada iz bırakır — yalnızca Owner görür.</p>
+        </div>
+
+        <select id="action-filter" class="input max-w-xs">
+            <option value="">Tüm işlemler</option>
+            <option value="BanUser">Banlama</option>
+            <option value="UnbanUser">Ban kaldırma</option>
+            <option value="ChangeRole">Rol değiştirme</option>
+            <option value="DeleteTopic">Konu silme</option>
+            <option value="EditTopic">Konu düzenleme</option>
+            <option value="DeleteComment">Yorum silme</option>
+            <option value="EditComment">Yorum düzenleme</option>
+            <option value="UpdateReportStatus">Şikayet güncelleme</option>
+            <option value="CreateBadge">Rozet oluşturma</option>
+            <option value="UpdateBadge">Rozet düzenleme</option>
+            <option value="DeleteBadge">Rozet silme</option>
+            <option value="AssignBadge">Rozet atama</option>
+            <option value="CreateCategory">Kategori oluşturma</option>
+            <option value="UpdateCategory">Kategori düzenleme</option>
+            <option value="DeleteCategory">Kategori silme</option>
+            <option value="UpdateSettings">Site ayarları</option>
+        </select>
+
+        <div class="card overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-ink-faint text-xs border-b border-line">
+                            <th class="p-3 font-medium">Zaman</th>
+                            <th class="p-3 font-medium">Kim</th>
+                            <th class="p-3 font-medium">İşlem</th>
+                            <th class="p-3 font-medium">Hedef</th>
+                            <th class="p-3 font-medium">Detay</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-rows">
+                        <tr>
+                            <td colspan="5" class="p-6 text-center hint">Yükleniyor…</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="pagination" class="flex justify-center gap-2"></div>
+    </main>
+
+    <script>
+        let currentPage = 1;
+        let currentAction = '';
+
+        const ACTION_LABEL = {
+            BanUser: 'Banlama', UnbanUser: 'Ban kaldırma', ChangeRole: 'Rol değiştirme',
+            DeleteTopic: 'Konu silme', EditTopic: 'Konu düzenleme',
+            DeleteComment: 'Yorum silme', EditComment: 'Yorum düzenleme',
+            UpdateReportStatus: 'Şikayet güncelleme', CreateBadge: 'Rozet oluşturma',
+            UpdateBadge: 'Rozet düzenleme', DeleteBadge: 'Rozet silme', AssignBadge: 'Rozet atama',
+            CreateCategory: 'Kategori oluşturma', UpdateCategory: 'Kategori düzenleme',
+            DeleteCategory: 'Kategori silme', UpdateSettings: 'Site ayarları'
+        };
+
+        async function loadLogs(page = 1) {
+            currentPage = page;
+            const params = new URLSearchParams({ page, pageSize: 20 });
+            if (currentAction) params.set('action', currentAction);
+
+            const res = await apiFetch(`/api/admin/audit-logs?${params}`);
+            if (!res.ok) return;
+
+            const data = await res.json();
+
+            document.getElementById('log-rows').innerHTML = data.items.length
+                ? data.items.map(l => `
+                    <tr class="border-b border-line last:border-0">
+                        <td class="p-3 hint whitespace-nowrap">${escapeHtml(formatDate(l.createdAt))}</td>
+                        <td class="p-3 font-medium text-ink">${escapeHtml(l.actorUsername)}</td>
+                        <td class="p-3">${escapeHtml(ACTION_LABEL[l.action] || l.action)}</td>
+                        <td class="p-3 hint">${l.targetType ? `${escapeHtml(l.targetType)} #${l.targetId}` : '—'}</td>
+                        <td class="p-3 hint">${escapeHtml(l.details || '—')}</td>
+                    </tr>`).join('')
+                : `<tr><td colspan="5" class="p-6 text-center hint">Kayıt bulunamadı.</td></tr>`;
+
+            renderPagination('pagination', data.page, data.totalPages, loadLogs);
+        }
+
+        document.getElementById('action-filter').addEventListener('change', (e) => {
+            currentAction = e.target.value;
+            loadLogs(1);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!requireStaff()) return;
+            if (!isOwner()) { window.location.href = 'index.html'; return; }
+            renderPanelNav('audit-log');
+            loadLogs();
+        });
+    </script>
+</body>
+
+</html>

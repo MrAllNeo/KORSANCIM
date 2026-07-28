@@ -183,7 +183,7 @@ namespace ForumApi.Tests
             ownerAuth = await TestHelpers.LoginAsync(ownerClient, ownerUsername, ownerAuth.Password);
             ownerClient.WithToken(ownerAuth.Token);
 
-            var ownerAttempt = await ownerClient.PutAsJsonAsync($"/api/admin/users/{targetAuth.UserId}/role", new { Role = Roles.Moderator });
+            var ownerAttempt = await ownerClient.PutAsJsonAsync($"/api/admin/users/{targetAuth.UserId}/role", new { Role = Roles.Moderator, CurrentPassword = ownerAuth.Password });
             Assert.Equal(HttpStatusCode.OK, ownerAttempt.StatusCode);
 
             // Yeni rol yalnızca bir sonraki girişte token'a işlenir.
@@ -209,7 +209,7 @@ namespace ForumApi.Tests
             var targetAuth = await TestHelpers.RegisterAndLoginAsync(targetClient, targetUsername);
 
             // "Owner" atanabilir roller listesinde yok — tekil, yalnızca migration ile atanır.
-            var assignOwnerResp = await ownerClient.PutAsJsonAsync($"/api/admin/users/{targetAuth.UserId}/role", new { Role = Roles.Owner });
+            var assignOwnerResp = await ownerClient.PutAsJsonAsync($"/api/admin/users/{targetAuth.UserId}/role", new { Role = Roles.Owner, CurrentPassword = ownerAuth.Password });
             Assert.Equal(HttpStatusCode.BadRequest, assignOwnerResp.StatusCode);
 
             var secondOwnerClient = _factory.CreateClient();
@@ -217,7 +217,7 @@ namespace ForumApi.Tests
             var secondOwnerAuth = await TestHelpers.RegisterAndLoginAsync(secondOwnerClient, secondOwnerUsername);
             await SetRoleAsync(secondOwnerAuth.UserId, Roles.Owner);
 
-            var changeOtherOwnerResp = await ownerClient.PutAsJsonAsync($"/api/admin/users/{secondOwnerAuth.UserId}/role", new { Role = Roles.User });
+            var changeOtherOwnerResp = await ownerClient.PutAsJsonAsync($"/api/admin/users/{secondOwnerAuth.UserId}/role", new { Role = Roles.User, CurrentPassword = ownerAuth.Password });
             Assert.Equal(HttpStatusCode.Forbidden, changeOtherOwnerResp.StatusCode);
         }
 

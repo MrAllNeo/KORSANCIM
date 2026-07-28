@@ -3,6 +3,7 @@ using System;
 using ForumApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ForumApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260728173915_AddAuditLogAndSiteSettings")]
+    partial class AddAuditLogAndSiteSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
@@ -375,12 +378,6 @@ namespace ForumApi.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("EmailVerificationToken")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("EmailVerificationTokenExpiresAt")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("GithubUrl")
                         .HasColumnType("TEXT");
 
@@ -388,9 +385,6 @@ namespace ForumApi.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsBanned")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsEmailVerified")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsTermsAccepted")

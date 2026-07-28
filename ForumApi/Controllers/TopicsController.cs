@@ -174,6 +174,16 @@ namespace ForumApi.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTopic([FromForm] CreateTopicDto dto)
         {
+            var isVerified = await _context.Users
+                .Where(u => u.Id == CurrentUserId)
+                .Select(u => u.IsEmailVerified)
+                .FirstOrDefaultAsync();
+
+            if (!isVerified)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = "Konu açabilmek için e-posta adresini doğrulamalısın." });
+            }
+
             if (!dto.IsLegalTermsAccepted)
             {
                 return BadRequest(new { error = "Yasal şartları kabul etmelisiniz." });

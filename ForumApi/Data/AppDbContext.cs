@@ -19,6 +19,8 @@ namespace ForumApi.Data
 
         public DbSet<Report> Reports { get; set; }
         public DbSet<Badge> Badges { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<SiteSettings> SiteSettings { get; set; }
 
         protected override void ConfigureConventions(ModelConfigurationBuilder builder)
         {
@@ -148,6 +150,20 @@ namespace ForumApi.Data
                 new Category { Id = 1, Name = "Yazılım & Kodlama", Slug = "yazilim-kodlama", Icon = "code", DisplayOrder = 1, Description = "C++, C#, Python, web ve kodlama dünyası" },
                 new Category { Id = 2, Name = "Donanım & Sistem", Slug = "donanim-sistem", Icon = "cpu", DisplayOrder = 2, Description = "Bilgisayar toplama, işletim sistemi, ağ ve sunucu" },
                 new Category { Id = 3, Name = "Geyik & Sohbet", Slug = "geyik-sohbet", Icon = "coffee", DisplayOrder = 3, Description = "Serbest kürsü — teknoloji dışı her şey" }
+            );
+
+            // Denetim kaydı: aktör silinse bile kayıt kalır (SetNull), sorgular
+            // en yeniden eskiye sıralanacağı için CreatedAt üzerinde indeks var.
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(a => a.Actor).WithMany()
+                .HasForeignKey(a => a.ActorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<AuditLog>().HasIndex(a => a.CreatedAt);
+
+            // Tek satırlık site ayarları — Id her zaman 1.
+            modelBuilder.Entity<SiteSettings>().HasData(
+                new SiteSettings { Id = 1 }
             );
         }
     }

@@ -27,7 +27,7 @@ namespace ForumApi.Controllers
             _uploads = uploads;
         }
 
-        private string CurrentUsername => User.FindFirstValue(ClaimTypes.Name)!;
+        private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         public class UpdateProfileDto
         {
@@ -59,8 +59,14 @@ namespace ForumApi.Controllers
                 return NotFound(new { error = "Böyle bir kullanıcı bulunamadı." });
             }
 
+            // Ziyaretçi kendisi mi? Öyleyse ShowActivity=false olsa bile kendi
+            // konu/yorumlarını görebilmeli — gizlilik yalnızca BAŞKALARINA karşı.
+            var viewerUsername = User.Identity?.IsAuthenticated == true ? User.FindFirstValue(ClaimTypes.Name) : null;
+            var isSelf = viewerUsername != null && viewerUsername.Equals(user.Username, StringComparison.OrdinalIgnoreCase);
+            var showActivity = user.ShowActivity || isSelf;
+
             // İçerik artık kullanıcı adına değil, kullanıcı kaydına bağlı.
-            var userTopics = await _context.Topics
+            var userTopics = !showActivity ? new() : await _context.Topics
                 .Include(t => t.Category)
                 .Where(t => t.UserId == user.Id)
                 .OrderByDescending(t => t.CreatedAt)
@@ -78,7 +84,7 @@ namespace ForumApi.Controllers
                 })
                 .ToListAsync();
 
-            var userComments = await _context.Comments
+            var userComments = !showActivity ? new() : await _context.Comments
                 .Include(c => c.Topic)
                 .Where(c => c.UserId == user.Id)
                 .OrderByDescending(c => c.CreatedAt)
@@ -107,6 +113,8 @@ namespace ForumApi.Controllers
                 user.WebsiteUrl,
                 Badge = BadgeSummary.From(user.Badge),
                 user.CreatedAt,
+                ShowActivity = isSelf ? user.ShowActivity : (bool?)null,
+                ActivityHidden = !showActivity,
                 Topics = userTopics,
                 Comments = userComments
             });
@@ -118,8 +126,7 @@ namespace ForumApi.Controllers
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateProfile([FromForm] UpdateProfileDto dto)
         {
-            var username = CurrentUsername;
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            var user = await _context.Users.FindAsync(CurrentUserId);
 
             if (user == null)
             {

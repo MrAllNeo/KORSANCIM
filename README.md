@@ -8,13 +8,13 @@ Anonim topluluk forumu. ASP.NET Core 8 Web API + SQLite, statik HTML/Tailwind ar
 
 ```
 ForumApi/
-├── Controllers/     Auth, Topics, Comments, Users endpoint'leri
+├── Controllers/     Auth, Account, Topics, Comments, Users endpoint'leri
 ├── Models/          Topic, Comment, User, Category, TopicLike, CommentLike
 ├── Data/            AppDbContext (EF Core)
 ├── Migrations/      EF Core migration'ları
 ├── tailwind.config.js  Tailwind renk/font token'ları (derleme zamanında okunur)
 ├── tailwind-input.css  Tailwind derlemesinin kaynak dosyası
-└── wwwroot/         Arayüz (index, auth, create-topic, topic-detail, profile)
+└── wwwroot/         Arayüz (index, auth, create-topic, topic-detail, profile, account-settings, verify-email)
     ├── css/app.css       Tasarım sistemi (renk, kart, buton, rozet)
     ├── css/tailwind.css  Derlenmiş Tailwind çıktısı (git'e dahil, elle düzenlenmez)
     ├── js/app.js         Ortak yardımcılar: header, oturum, rol kontrolü, XSS kaçışı, rozet render, şikayet modalı
@@ -72,28 +72,49 @@ Development'ta tanımlanmazsa her başlatmada geçici bir anahtar üretilir (uya
 loglanır, sunucu yeniden başlayınca oturumlar düşer). **Production'da tanımlı
 değilse uygulama başlamaz.**
 
+### E-posta gönderimi (Brevo)
+
+Doğrulama e-postaları [Brevo](https://www.brevo.com) transactional API'si
+üzerinden gönderilir (günde 300 e-postaya kadar ücretsiz). Ortam değişkeni
+olarak verilir:
+
+```bash
+Brevo__ApiKey='brevo-api-anahtari' \
+Brevo__SenderEmail='noreply@alanadin.com' \
+Brevo__SenderName='KORSANCIM' \
+dotnet run --project ForumApi
+```
+
+`Brevo:ApiKey` tanımlı değilse (ör. geliştirme ortamında) e-posta gönderimi
+sessizce atlanır, kayıt akışı bloklanmaz — yalnızca uyarı loglanır
+(`Services/EmailService.cs`). Test ortamında (`ASPNETCORE_ENVIRONMENT=Testing`)
+yeni kayıtlar zaten otomatik doğrulanmış sayılır, e-posta hiç denenmez.
+
 ## API
 
 🔒 = `Authorization: Bearer <token>` gerektirir. Bu uçlarda yazar/kullanıcı
 kimliği **token'dan** okunur; istemcinin gönderdiği kullanıcı adı dikkate alınmaz.
 👤 = yalnızca içeriğin sahibi çağırabilir, başkası `403` alır.
+📧 = e-posta doğrulanmamışsa `403` — bkz. aşağıdaki e-posta doğrulama bölümü.
 
 Konu listesi varsayılan 20, en fazla 50 kayıt döner; yanıt
 `{ items, page, pageSize, total, totalPages, hasMore }` şeklindedir.
 
 | Metot | Yol | Açıklama |
 |---|---|---|
-| POST | `/api/auth/register` | Kayıt |
-| POST | `/api/auth/login` | Giriş — token döner (12 saat geçerli) |
+| POST | `/api/auth/register` | Kayıt — kayıtlar kapalıysa (site ayarları) `403`; doğrulama e-postası gönderir |
+| POST | `/api/auth/login` | Giriş — token döner (`User`/`Moderator` 12 saat, `Admin`/`Owner` 4 saat) |
+| POST | `/api/auth/verify-email` | E-posta doğrula (`{ token }`) — geçersiz/süresi dolmuşsa `400` |
+| POST | `/api/auth/resend-verification` 🔒 | Doğrulama e-postasını tekrar gönder — zaten doğrulanmışsa `400` |
 | GET | `/api/topics?categoryId=&page=&pageSize=` | Sayfalı konu listesi |
 | GET | `/api/topics/{id}` | Konu detayı |
-| POST | `/api/topics` 🔒 | Konu oluştur (multipart, görsel ekli) |
+| POST | `/api/topics` 🔒📧 | Konu oluştur (multipart, görsel ekli) |
 | PUT | `/api/topics/{id}` 🔒👤 | Konuyu düzenle |
 | DELETE | `/api/topics/{id}` 🔒👤 | Konuyu, yanıtlarını, beğenilerini ve eklerini sil |
 | POST | `/api/topics/{id}/like` 🔒 | Konu beğen / beğeniyi geri al |
 | GET | `/api/topics/{id}/like` 🔒 | Bu konuyu beğenmiş miyim? |
 | GET | `/api/comments/topic/{topicId}` | Konunun yorumları |
-| POST | `/api/comments` 🔒 | Yorum yaz |
+| POST | `/api/comments` 🔒📧 | Yorum yaz |
 | PUT | `/api/comments/{id}` 🔒👤 | Yorumu düzenle |
 | DELETE | `/api/comments/{id}` 🔒👤 | Yorumu ve beğenilerini sil |
 | POST | `/api/comments/{id}/like` 🔒 | Yorum beğen / beğeniyi geri al |
@@ -102,6 +123,12 @@ Konu listesi varsayılan 20, en fazla 50 kayıt döner; yanıt
 | GET | `/api/search?q=&limit=` | Konu, yanıt ve kullanıcılarda arama |
 | GET | `/api/categories` | Kategori listesi + kategori başına konu sayısı |
 | GET | `/api/comments/topic/{id}/likes` 🔒 | Bu konuda beğendiğim yanıtların id'leri |
+| GET | `/api/settings` | Herkese açık: kayıt açık mı, bakım modu, duyuru metni |
+| PUT | `/api/account/username` 🔒 | Kullanıcı adı değiştir (şifre onayı) — yanıt yeni bir JWT içerir |
+| PUT | `/api/account/email` 🔒 | E-posta değiştir (şifre onayı) — yeniden doğrulama gerektirir |
+| PUT | `/api/account/password` 🔒 | Şifre değiştir (mevcut şifre onayı) |
+| PUT | `/api/account/privacy` 🔒 | `{ showActivity }` — kapatılırsa konu/yorumların başkalarına görünmez |
+| DELETE | `/api/account` 🔒 | Hesabı ve tüm içeriğini kalıcı olarak sil (şifre onayı) |
 
 ### Şikayet (Report) uçları
 
@@ -116,6 +143,32 @@ görünmez.
 | GET | `/api/reports/mine` 🔒 | Kendi şikayetlerimin durumu |
 
 Aynı hedefe, işlemi bekleyen bir şikayeti varken tekrar şikayet açılamaz.
+
+### E-posta doğrulama
+
+Kayıt olan her kullanıcı `IsEmailVerified = false` ile başlar; doğrulanana
+kadar konu açamaz/yorum yazamaz (giriş yapabilir, siteyi gezebilir — tam
+kilit değil, yalnızca yazma engellenir). Doğrulama bağlantısı
+`verify-email.html?token=...`'e gider, sayfa token'ı `POST
+/api/auth/verify-email`'e yollar. Token 24 saat geçerli, tek kullanımlık
+(doğrulanınca temizlenir). Arayüzde doğrulanmamış oturumda her sayfanın
+üstünde bir hatırlatma şeridi + "tekrar gönder" butonu görünür
+(`js/app.js` `checkEmailVerification()`).
+
+Bu özellikten önce var olan kullanıcılar migration'da otomatik doğrulanmış
+sayıldı — yalnızca bundan sonraki yeni kayıtlar doğrulama gerektirir.
+
+### Hesap Ayarları
+
+`wwwroot/account-settings.html` (header'daki dişli ikonundan erişilir) —
+kullanıcı adı/e-posta/şifre değişikliği, aktivite gizliliği ve hesap silme
+tek sayfada. Kullanıcı adı değişince kullanıcıya yeni bir JWT dönülür ve
+oturum otomatik güncellenir (JWT kullanıcı adını claim olarak taşıyor);
+e-posta değişince mevcut oturum geçerliliğini korur ama `IsEmailVerified`
+sıfırlanır ve yeni adrese doğrulama maili gider. Hesap silme geri alınamaz:
+kullanıcı silinince konuları/yorumları/beğenileri veritabanı cascade'i ile
+gider (anonimleştirme değil), avatar/banner/konu ekleri diskten ayrıca
+temizlenir.
 
 ### Yönetim uçları (rol gerektirir)
 
@@ -148,6 +201,16 @@ Owner yapabilir; bu, adminlerin birbirini terfi/azletmesini imkânsız kılar.
 | POST | `/api/admin/categories` ⚙️👤 | Kategori oluştur (`{ name, description, icon, displayOrder }`) |
 | PUT | `/api/admin/categories/{id}` ⚙️👤 | Kategoriyi düzenle |
 | DELETE | `/api/admin/categories/{id}` ⚙️👤 | Kategoriyi sil — içinde konu varsa reddedilir |
+| GET | `/api/admin/audit-logs?action=&page=&pageSize=` ⚙️👑 | Denetim kaydı — kim ne zaman ne yaptı (yalnızca okuma) |
+| PUT | `/api/admin/settings` ⚙️👑 | Site ayarlarını güncelle (`{ registrationOpen, maintenanceMode, announcementText? }`) |
+
+`PUT /api/admin/users/{id}/role` gövdesine `currentPassword` da eklendi —
+rol atama en yüksek etkili işlem olduğu için Owner kendi şifresiyle yeniden
+onay vermeden işlem tamamlanmaz (`401` yanlış şifrede).
+
+`/api/admin/*` uçları ayrıca `admin` rate limit politikasına tabidir (100
+istek/dk, kullanıcı bazlı) — genel tavandan (120/dk) daha sıkı, amaç ele
+geçirilmiş bir admin oturumunun otomasyon hızını sınırlamak.
 
 Bir Admin'in yetkisi kötüye kullanılırsa çözüm önce Owner'ın onu
 `User`/`Moderator`'a indirmesi, sonra gerekirse banlanmasıdır — Admin/Owner
@@ -178,6 +241,8 @@ sunumunun bir alt yolu. Sayfalar:
 | `panel/reports.html` | Şikayet kuyruğu — durum filtresi, hedefe git, incelemeye al / çöz / reddet (çözüm notu ile) |
 | `panel/badges.html` | Rozet listesi (Moderator+ görür); oluşturma/düzenleme/silme yalnızca Owner |
 | `panel/categories.html` | Kategori CRUD (Admin+); içinde konu olan kategori silinemez |
+| `panel/audit-log.html` | Denetim kaydı — işlem filtresi, kim/ne zaman/ne yaptı (yalnızca Owner) |
+| `panel/settings.html` | Kayıt aç/kapa, bakım modu, duyuru şeridi (yalnızca Owner) |
 
 **Erişim modeli — iki katman:**
 1. **Gerçek yetki**: her `/api/admin/*` isteği sunucuda `[Authorize(Roles=...)]`
@@ -195,10 +260,19 @@ matrise uygun), sunucu tarafı `/api/topics/{id}` yerine `/api/admin/topics/{id}
 çağrılır. Ana site header'ında "Panel" linki yalnızca Moderator+ rolündeki
 oturumlarda görünür.
 
-Henüz yok (D4'e bırakıldı): denetim kaydı (audit log — kim ne zaman ne
-yaptı), site ayarları ekranı (kayıt aç/kapa, bakım modu, duyuru şeridi),
-panel'e özel daha sıkı rate limiting ve kısa ömürlü admin token'ı,
-subdomain + reverse-proxy şifresi (bilerek "yayına çıkış" partisine ertelendi).
+**Bakım modu** açıkken personel (Moderator+) sitede çalışmaya devam edebilir,
+sıradan kullanıcı ve anonim ziyaretçi tam sayfa bir "site bakımda" mesajı
+görür (`js/app.js` `checkSiteStatus()`, her `renderHeader()` çağrısında
+tetiklenir). Duyuru şeridi bakım modundan bağımsız, ayarlandığında her
+sayfanın üstünde görünür.
+
+Rol atama (`users.html`'deki rol `<select>`'i) artık tek adımda tamamlanmıyor
+— Owner değişikliği onaylamadan önce kendi şifresini girdiği bir modal açılır
+(`role-confirm-modal`); yanlış şifrede işlem iptal olur, select eski değerine
+döner.
+
+Henüz yok: subdomain + reverse-proxy şifresi (bilerek "yayına çıkış"
+partisine ertelendi), token iptali (logout yalnızca istemcide).
 
 ## Veritabanı
 
@@ -237,25 +311,40 @@ dotnet ef migrations add DegisiklikAdi --project ForumApi
 - Yazar/beğenen kimliği veritabanı seviyesinde foreign key ile bağlı; kullanıcı
   adı değişse veya kullanıcı silinse bile yetim kayıt kalmaz.
 - Rate limiting IP (anonim) veya kullanıcı adı (girişli) bazında bölümlenir:
-  genel 120 istek/dk, giriş-kayıt 8 istek/5dk, yazma işlemleri 30 istek/dk.
-  Aşıldığında `429` + `Retry-After` döner. Statik dosyalar sayaca dahil değildir.
-  **Ters vekil arkasına konursa** `ForwardedHeaders` eklenmeli, yoksa tüm
-  istekler tek IP'den geliyormuş gibi görünür. Test ortamında
+  genel 120 istek/dk, giriş-kayıt 8 istek/5dk, yazma işlemleri 30 istek/dk,
+  `/api/admin/*` 100 istek/dk (genel tavandan daha sıkı — ele geçirilmiş bir
+  admin oturumunun otomasyon hızını sınırlar). Aşıldığında `429` +
+  `Retry-After` döner. Statik dosyalar sayaca dahil değildir. **Ters vekil
+  arkasına konursa** `ForwardedHeaders` eklenmeli, yoksa tüm istekler tek
+  IP'den geliyormuş gibi görünür. Test ortamında
   (`ASPNETCORE_ENVIRONMENT=Testing`) devre dışı bırakılır.
 - Rol sistemi (`User` / `Moderator` / `Admin` / `Owner`) ve ban (`IsBanned`,
   `BanReason`) veritabanında tutulur, rol JWT'ye claim olarak gömülür. Banlanan
   kullanıcı hem girişte hem de **mevcut token'ıyla** anında reddedilir — ban,
-  token'ın 12 saatlik ömrü dolana kadar beklemez (bkz. `Program.cs` içindeki
-  kimlik doğrulama sonrası middleware).
+  token'ın ömrü dolana kadar beklemez (bkz. `Program.cs` içindeki kimlik
+  doğrulama sonrası middleware).
 - Admin/Owner rolündeki bir hesap banlanamaz (kilitlenme riskine karşı); kimse
   kendini banlayamaz. Rol değişikliği yalnızca Owner'a açık — Admin bile rol
-  atayamaz/azledemez.
+  atayamaz/azledemez; Owner rol değiştirirken kendi şifresiyle yeniden onay
+  verir (`ChangeRoleDto.CurrentPassword`, yanlışsa `401`).
+- JWT ömrü role göre değişir: `User`/`Moderator` 12 saat, `Admin`/`Owner` 4
+  saat (`TokenService.ExpiryHoursFor`) — çalınmış yüksek yetkili bir token'ın
+  kullanılabilir penceresi dar tutulur.
+- Denetim kaydı (`AuditLogs` tablosu) yönetim panelindeki her mutasyonu
+  (ban, rol/rozet/kategori değişikliği, içerik silme/düzenleme, şikayet
+  işleme, ayar değişikliği) kalıcı olarak kaydeder; hiçbir uçtan
+  düzenlenemez/silinemez, yalnızca Owner okuyabilir.
+- Bakım modu (`SiteSettings.MaintenanceMode`) açıkken personel dışındaki tüm
+  `/api/*` istekleri `503` alır (`/api/settings` ve `/api/auth/login` muaf)
+  — bkz. `Program.cs`.
+- E-posta doğrulama token'ı 32 byte'lık kriptografik rastgele değer
+  (`RandomNumberGenerator`), 24 saat geçerli, doğrulanınca veritabanından
+  temizlenir — tekrar kullanılamaz.
 
 Rozet sistemi veritabanında (`Badges` tablosu, `Users.BadgeId`) ve yönetim
 panelinden atanır — kod içinde sabit kullanıcı adı eşleşmesi kalmadı.
 
-Henüz yapılmadı: e-posta doğrulama, denetim kaydı (audit log), token iptali
-(logout sunucuda değil yalnızca istemcide).
+Henüz yapılmadı: token iptali (logout sunucuda değil yalnızca istemcide).
 
 ## Testler
 
@@ -278,7 +367,22 @@ dashboard istatistik ucunun rol koruması),
 rozet/kategori yönetimi (rozet CRUD'unun yalnızca Owner'a açık olması, geçersiz
 tema reddi, rozet atamanın Admin+ ile Moderator arasındaki farkı, var olmayan
 rozet atama reddi, kategori CRUD'unun Admin+ ile Moderator arasındaki farkı,
-içinde konu olan kategorinin silinememesi, yinelenen kategori adı reddi).
+içinde konu olan kategorinin silinememesi, yinelenen kategori adı reddi),
+denetim kaydı ve site ayarları (audit log'un yalnızca Owner'a açık olması,
+banlama gibi işlemlerin kayıt bırakması, rol değişikliğinin yanlış şifrede
+reddedilmesi, site ayarlarının yalnızca Owner'a açık olması, kayıt kapalıyken
+yeni üyeliğin reddedilmesi, bakım modunda sıradan kullanıcının `503` alması
+ama personelin ve `/api/settings`'in etkilenmemesi, Admin/Owner'ın normal
+kullanıcıdan kısa JWT ömrüne sahip olması),
+e-posta doğrulama (doğrulanmamış kullanıcının konu/yorum yazamaması, doğru
+token'la doğrulanınca yazabilir hale gelmesi, süresi dolmuş/bilinmeyen
+token'ın reddedilmesi, tekrar gönderimin yalnızca doğrulanmamış kullanıcıda
+çalışması),
+hesap ayarları (kullanıcı adı/e-posta/şifre değişikliğinin yanlış şifrede
+reddedilmesi, kullanıcı adı değişince eski adla girişin artık çalışmaması,
+e-posta değişince yeniden doğrulama gerekmesi, gizlilik kapatılınca
+aktivitenin başkasına değil yalnızca kendine görünmesi, hesap silmenin
+kullanıcıyı ve konularını veritabanından kaldırması).
 
 ## Geçmiş
 

@@ -63,6 +63,20 @@
         </div>
     </div>
 
+    <div id="role-confirm-modal" class="hidden fixed inset-0 z-50 bg-black/60 grid place-items-center p-4">
+        <div class="card p-5 w-full max-w-sm">
+            <h2 class="text-sm font-bold text-ink mb-3">Rol değişikliğini onayla</h2>
+            <p class="hint mb-3">Rol atama en hassas işlemdir — devam etmek için şifreni doğrula.</p>
+            <label class="label" for="role-confirm-password">Şifreniz</label>
+            <input type="password" id="role-confirm-password" class="input" autocomplete="current-password">
+            <p id="role-confirm-error" class="text-bad text-xs mt-2 hidden"></p>
+            <div class="flex justify-end gap-2 mt-4">
+                <button onclick="closeRoleConfirmModal(true)" class="btn btn-quiet">Vazgeç</button>
+                <button onclick="confirmRoleChange()" class="btn btn-primary">Onayla</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentPage = 1;
         let searchTerm = '';
@@ -88,7 +102,7 @@
 
             const roles = ['User', 'Moderator', 'Admin'];
             const options = roles.map(r => `<option value="${r}" ${r === user.role ? 'selected' : ''}>${r}</option>`).join('');
-            return `<select data-user-id="${user.id}" class="role-select input" style="padding:4px 8px;font-size:12px;width:auto;">${options}</select>`;
+            return `<select data-user-id="${user.id}" data-previous-role="${user.role}" class="role-select input" style="padding:4px 8px;font-size:12px;width:auto;">${options}</select>`;
         }
 
         let badgeOptions = [];
@@ -151,7 +165,7 @@
             document.querySelectorAll('[data-unban-id]').forEach(btn =>
                 btn.addEventListener('click', () => unban(Number(btn.dataset.unbanId))));
             document.querySelectorAll('.role-select').forEach(sel =>
-                sel.addEventListener('change', () => changeRole(Number(sel.dataset.userId), sel.value)));
+                sel.addEventListener('change', () => openRoleConfirmModal(sel)));
             document.querySelectorAll('.badge-select').forEach(sel =>
                 sel.addEventListener('change', () => assignBadge(Number(sel.dataset.badgeUserId), sel.value)));
 
@@ -189,12 +203,43 @@
             }
         }
 
-        async function changeRole(id, role) {
-            const res = await apiFetchJson(`/api/admin/users/${id}/role`, 'PUT', { role });
-            if (!res.ok) {
-                alert(await readError(res, 'Rol değiştirilemedi.'));
+        let roleConfirmTarget = null; // { id, role, selectEl }
+
+        function openRoleConfirmModal(selectEl) {
+            roleConfirmTarget = {
+                id: Number(selectEl.dataset.userId),
+                role: selectEl.value,
+                selectEl
+            };
+            document.getElementById('role-confirm-password').value = '';
+            document.getElementById('role-confirm-error').classList.add('hidden');
+            document.getElementById('role-confirm-modal').classList.remove('hidden');
+        }
+
+        // revert: vazgeçilince select eski değerine döner.
+        function closeRoleConfirmModal(revert) {
+            if (revert && roleConfirmTarget) {
+                roleConfirmTarget.selectEl.value = roleConfirmTarget.selectEl.dataset.previousRole;
             }
-            loadUsers(currentPage);
+            roleConfirmTarget = null;
+            document.getElementById('role-confirm-modal').classList.add('hidden');
+        }
+
+        async function confirmRoleChange() {
+            const password = document.getElementById('role-confirm-password').value;
+            const errorEl = document.getElementById('role-confirm-error');
+            const { id, role, selectEl } = roleConfirmTarget;
+
+            const res = await apiFetchJson(`/api/admin/users/${id}/role`, 'PUT', { role, currentPassword: password });
+
+            if (res.ok) {
+                selectEl.dataset.previousRole = role;
+                closeRoleConfirmModal(false);
+                loadUsers(currentPage);
+            } else {
+                errorEl.textContent = await readError(res, 'Rol değiştirilemedi.');
+                errorEl.classList.remove('hidden');
+            }
         }
 
         async function assignBadge(id, badgeId) {
